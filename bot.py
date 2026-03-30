@@ -122,27 +122,28 @@ def save_state(state):
 # ── Market research ───────────────────────────────────────────────────────────
 def get_crypto_prices():
     try:
+        # Use simple/price endpoint — much faster than markets
         r = requests.get(
-            "https://api.coingecko.com/api/v3/coins/markets"
-            "?vs_currency=usd&ids=bitcoin,ethereum,solana,ripple"
-            "&order=market_cap_desc&per_page=4&page=1"
-            "&price_change_percentage=1h,24h",
-            timeout=10
+            "https://api.coingecko.com/api/v3/simple/price"
+            "?ids=bitcoin,ethereum,solana,ripple"
+            "&vs_currencies=usd&include_24hr_change=true",
+            timeout=5
         )
-        return {c["symbol"].upper(): {
-            "price": c["current_price"],
-            "change_1h": c.get("price_change_percentage_1h_in_currency", 0),
-            "change_24h": c.get("price_change_percentage_24h", 0),
-            "volume": c.get("total_volume", 0),
-        } for c in r.json()}
-    except Exception as e:
+        raw = r.json()
+        mapping = {"bitcoin": "BTC", "ethereum": "ETH", "solana": "SOL", "ripple": "XRP"}
+        return {mapping[k]: {
+            "price": v.get("usd", 0),
+            "change_24h": v.get("usd_24h_change", 0),
+            "change_1h": 0,  # not available in simple endpoint
+        } for k, v in raw.items() if k in mapping}
+    except Exception:
         return {}
 
 def get_trending_news():
     signals = []
     try:
         # Trending coins on CoinGecko
-        r = requests.get("https://api.coingecko.com/api/v3/search/trending", timeout=10)
+        r = requests.get("https://api.coingecko.com/api/v3/search/trending", timeout=5)
         coins = r.json().get("coins", [])[:3]
         for c in coins:
             signals.append({"source": "CoinGecko Trending", "text": f"{c['item']['name']} trending (rank #{c['item']['market_cap_rank']})", "sentiment": "bullish"})
@@ -151,7 +152,7 @@ def get_trending_news():
 
     try:
         # Fear & Greed index
-        r = requests.get("https://api.alternative.me/fng/?limit=1", timeout=10)
+        r = requests.get("https://api.alternative.me/fng/?limit=1", timeout=5)
         d = r.json()["data"][0]
         val = int(d["value"])
         label = d["value_classification"]
@@ -162,7 +163,7 @@ def get_trending_news():
 
     try:
         # CoinGecko global market data
-        r = requests.get("https://api.coingecko.com/api/v3/global", timeout=10)
+        r = requests.get("https://api.coingecko.com/api/v3/global", timeout=5)
         g = r.json().get("data", {})
         btc_dom = g.get("market_cap_percentage", {}).get("btc", 0)
         total_cap = g.get("total_market_cap", {}).get("usd", 0)
@@ -309,7 +310,7 @@ def run_hourly():
             status, result = market_sell("ETH-USD", f"{eth_qty:.6f}")
             if result.get("success"):
                 order_id = result["success_response"]["order_id"]
-                time.sleep(3)
+                time.sleep(1)
                 order = get_order(order_id)
                 exit_price = float(order.get("average_filled_price", eth_price))
                 realized_pnl = (exit_price - pos["entry"]) * pos["qty"]
@@ -329,7 +330,7 @@ def run_hourly():
 
     # ── Refresh cash after potential sell ──
     if actions_taken:
-        time.sleep(2)
+        time.sleep(1)
         total, cash, live_positions = get_portfolio()
 
     # ── Check entry conditions ──
@@ -342,7 +343,7 @@ def run_hourly():
             status, result = market_buy(product_id, trade_usd)
             if result.get("success"):
                 order_id = result["success_response"]["order_id"]
-                time.sleep(3)
+                time.sleep(1)
                 order = get_order(order_id)
                 entry_price = float(order.get("average_filled_price", eth_price))
                 qty = float(order.get("filled_size", 0))
@@ -385,14 +386,16 @@ def run_hourly():
     if len(state["balance_history"]) > 720:  # keep 30 days of hourly data
         state["balance_history"] = state["balance_history"][-720:]
 
-    # News & signals
-    signals = get_trending_news()
-    if signals:
-        report_lines.append(f"")
-        report_lines.append(f"📰 **Market Signals:**")
-        for s in signals:
-            emoji = "🟢" if s["sentiment"] == "bullish" else "🔴" if s["sentiment"] == "bearish" else "🟡"
-            report_lines.append(f"  {emoji} [{s['source']}] {s['text']}")
+    # News signals only on every 10th run (every ~10 min) to save time
+    run_count = len(state.get("balance_history", []))
+    if run_count % 10 == 0:
+        signals = get_trending_news()
+        if signals:
+            report_lines.append(f"")
+            report_lines.append(f"📰 **Market Signals:**")
+            for s in signals:
+                emoji = "🟢" if s["sentiment"] == "bullish" else "🔴" if s["sentiment"] == "bearish" else "🟡"
+                report_lines.append(f"  {emoji} [{s['source']}] {s['text']}")
 
     report_lines.append(f"")
     report_lines.append(f"_Next check in ~1 hour_")
