@@ -442,7 +442,86 @@ def run_research():
         gainer_strs = [f"{g['symbol'].upper()} {g.get('price_change_percentage_24h',0):+.1f}%" for g in gainers[:3]]
         lines += [f"📈 **Top movers (24h):** {' | '.join(gainer_strs)}"]
 
+    # ── Strategy improvement research ──────────────────────────────────────
+    improvement_notes = run_strategy_improvement_research(state, strategy, perf, market_data)
+    if improvement_notes:
+        lines += ["", "🧠 **Strategy Improvement Notes:**"]
+        for note in improvement_notes:
+            lines.append(f"  • {note}")
+
     return "\n".join(lines)
+
+
+def run_strategy_improvement_research(state, strategy, perf, market_data):
+    """
+    Meta-research: analyze performance and find ways to improve.
+    Returns list of actionable improvement notes.
+    """
+    notes = []
+    trades = state.get("trades", [])
+    completed = [t for t in trades if t.get("pnl") is not None]
+
+    # ── Performance analysis ──
+    if completed:
+        wins = [t for t in completed if t["pnl"] > 0]
+        losses = [t for t in completed if t["pnl"] < 0]
+        total_pnl = sum(t["pnl"] for t in completed)
+        avg_win = sum(t["pnl"] for t in wins) / len(wins) if wins else 0
+        avg_loss = sum(t["pnl"] for t in losses) / len(losses) if losses else 0
+        win_rate = len(wins) / len(completed)
+
+        if win_rate < 0.4 and len(completed) >= 3:
+            notes.append(f"Win rate {win_rate*100:.0f}% is below target — consider tightening entry criteria or wider stop-loss to avoid early shakeouts")
+
+        if avg_loss and avg_win and abs(avg_loss) > avg_win:
+            notes.append(f"Avg loss (${avg_loss:.2f}) exceeds avg win (${avg_win:.2f}) — risk/reward ratio unfavorable, consider tighter stops or larger take-profit targets")
+
+        if len(losses) >= 2:
+            consecutive = 0
+            for t in reversed(completed):
+                if t["pnl"] < 0: consecutive += 1
+                else: break
+            if consecutive >= 2:
+                notes.append(f"{consecutive} consecutive losses — entering cooldown mode recommendation: skip next entry, wait for stronger signal")
+
+    # ── Fee impact analysis ──
+    total_trades = len(completed)
+    if total_trades > 0:
+        est_fees = total_trades * 2 * 0.012  # 1.2% each side
+        pct_of_portfolio = est_fees / 40 * 100
+        if pct_of_portfolio > 5:
+            notes.append(f"Fees eating ~{pct_of_portfolio:.1f}% of capital ({total_trades} trades × 2.4% round-trip) — reduce trade frequency or target larger moves")
+
+    # ── Market opportunity research ──
+    eth = market_data.get("ETH", {})
+    btc = market_data.get("BTC", {})
+    eth_7d = eth.get("price_change_percentage_7d_in_currency", 0) or 0
+    btc_7d = btc.get("price_change_percentage_7d_in_currency", 0) or 0
+
+    if eth_7d < -10 and btc_7d < -10:
+        notes.append("Both ETH and BTC down >10% on 7d — consider reducing position size until trend stabilizes")
+    elif eth_7d > 10:
+        notes.append(f"ETH up {eth_7d:.1f}% on 7d — bullish trend, could widen take-profit target to capture larger moves")
+
+    # ── Position sizing improvement ──
+    portfolio_val = state.get("balance_history", [{}])[-1].get("value", 40)
+    if portfolio_val > 50 and strategy.get("max_position_pct", 80) < 85:
+        notes.append(f"Portfolio at ${portfolio_val:.2f} — could increase position size to 85% now that we have more buffer")
+
+    # ── Timing patterns ──
+    if completed:
+        # Check if losses happen at certain times (simple check)
+        loss_times = [t["time"][11:13] for t in completed if t["pnl"] < 0 and t.get("time")]
+        if loss_times:
+            from collections import Counter
+            bad_hours = Counter(loss_times).most_common(1)
+            if bad_hours and bad_hours[0][1] >= 2:
+                notes.append(f"Pattern detected: losses cluster around {bad_hours[0][0]}:00 UTC — consider avoiding entries at that hour")
+
+    if not notes:
+        notes.append("Strategy performing within parameters — no changes recommended this cycle")
+
+    return notes
 
 if __name__ == "__main__":
     print(run_research())
