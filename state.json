@@ -1,28 +1,5 @@
 {
-  "positions": {
-    "SOL": {
-      "qty": 0.40622032,
-      "entry": 84.24,
-      "stop_loss": 82.277208,
-      "target": 87.18839999999999,
-      "size_usd": 33.65,
-      "peak_price": 84.26,
-      "order_id": "a55efee4-25cc-4a8f-8f7a-324d07d6631a",
-      "entry_time": 1774887305.4441147,
-      "current_price": 82.83
-    },
-    "ETH": {
-      "qty": 0.00138277,
-      "entry": 2039.38,
-      "stop_loss": 1991.862446,
-      "target": 2110.7583,
-      "size_usd": 2.81,
-      "peak_price": 2043.5,
-      "order_id": "aaf467e7-e0ce-4764-bc8e-b481461b3667",
-      "entry_time": 1774906656.280277,
-      "current_price": 2033.73
-    }
-  },
+  "positions": {},
   "trades": [
     {
       "time": "2026-03-30T11:10:07",
@@ -67,13 +44,39 @@
         "24h: +1.83%",
         "BTC $66,828"
       ]
+    },
+    {
+      "time": "2026-03-30 22:40 UTC",
+      "asset": "SOL",
+      "side": "SELL",
+      "qty": 0.40622032,
+      "entry": 84.24,
+      "exit": 82.88671391,
+      "sizeUsd": 33.65,
+      "pnl": -0.5497323085313478,
+      "reason": "ROTATION SELL: ROTATE: SOL (-1.67%, score=0.175) \u2192 BTC (score=0.500, edge=+0.325) | BTC 1h=-0.18% 24h=+1.70%",
+      "strategy_context": "Rotated out of SOL @ $82.8867 into BTC | Held 6.4h | P&L $-0.550",
+      "signals": [
+        "F&G: 8/100"
+      ]
+    },
+    {
+      "time": "2026-03-30 22:40 UTC",
+      "asset": "ETH",
+      "side": "SELL",
+      "qty": 0.00138277,
+      "entry": 2039.38,
+      "exit": 2034.21,
+      "sizeUsd": 2.81,
+      "pnl": -0.0071489209000001,
+      "reason": "ROTATION SELL: ROTATE: SOL (-1.67%, score=0.175) \u2192 BTC (score=0.500, edge=+0.325) | BTC 1h=-0.18% 24h=+1.70%",
+      "strategy_context": "Rotated out of ETH @ $2034.2100 into BTC | Held 1.1h | P&L $-0.007",
+      "signals": [
+        "F&G: 8/100"
+      ]
     }
   ],
   "balance_history": [
-    {
-      "time": "2026-03-30 10:11 UTC",
-      "value": 39.7738
-    },
     {
       "time": "2026-03-30 10:12 UTC",
       "value": 39.7554
@@ -2949,30 +2952,21 @@
     {
       "time": "2026-03-30 22:39 UTC",
       "value": 38.4901
+    },
+    {
+      "time": "2026-03-30 22:40 UTC",
+      "value": 38.0778
     }
   ],
   "start_balance": 40.0,
   "day": 2,
-  "cash": 1.01,
+  "cash": 37.05,
   "scalp": {
     "trades_today": 0,
     "last_price": 1.33
   },
   "last_day": 2,
   "activity_log": [
-    {
-      "time": "2026-03-30 20:36 UTC",
-      "cycle": 720,
-      "portfolio": 38.42,
-      "eth_price": 2020.91,
-      "eth_pnl_pct": 0,
-      "cash": 3.86,
-      "actions": [
-        "no changes \u2014 holding"
-      ],
-      "xrp": "XRP scalp: watching",
-      "regime": "extreme_fear"
-    },
     {
       "time": "2026-03-30 20:37 UTC",
       "cycle": 720,
@@ -4518,6 +4512,20 @@
         "holding SOL -1.7%, ETH -0.3%"
       ],
       "xrp": "Positions: SOL -1.7%, ETH -0.3%",
+      "regime": "extreme_fear"
+    },
+    {
+      "time": "2026-03-30 22:40 UTC",
+      "cycle": 720,
+      "portfolio": 38.08,
+      "eth_price": 2033.53,
+      "eth_pnl_pct": 0,
+      "cash": 37.05,
+      "actions": [
+        "\ud83d\udd04 Rotated SOL \u2192 BTC",
+        "\ud83d\udd04 Rotated ETH \u2192 BTC"
+      ],
+      "xrp": "Positions: none",
       "regime": "extreme_fear"
     }
   ],
@@ -6326,5 +6334,6 @@
   "last_sell_price": 2067.03,
   "waiting_for_dip": false,
   "sniper_mode": true,
-  "cashBalance": 37.01
+  "cashBalance": 37.01,
+  "last_rotation_time": 1774910447.7526155
 }
