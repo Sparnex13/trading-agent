@@ -122,7 +122,6 @@ def save_state(state):
 # ── Market research ───────────────────────────────────────────────────────────
 def get_crypto_prices():
     try:
-        # Use simple/price endpoint — much faster than markets
         r = requests.get(
             "https://api.coingecko.com/api/v3/simple/price"
             "?ids=bitcoin,ethereum,solana,ripple"
@@ -134,10 +133,143 @@ def get_crypto_prices():
         return {mapping[k]: {
             "price": v.get("usd", 0),
             "change_24h": v.get("usd_24h_change", 0),
-            "change_1h": 0,  # not available in simple endpoint
+            "change_1h": 0,
         } for k, v in raw.items() if k in mapping}
     except Exception:
         return {}
+
+# ── XRP Scalp logic ───────────────────────────────────────────────────────────
+# Each run we compare current price to last-seen price to detect micro-moves.
+# We enter on upswings > SCALP_ENTRY_MOVE_PCT and exit at SCALP_TARGET_PCT or SCALP_STOP_PCT.
+
+SCALP_ASSET = "XRP-USD"
+SCALP_SYMBOL = "XRP"
+SCALP_ALLOC_USD = 5.0       # fixed $5 per scalp trade (small, frequent)
+SCALP_TARGET_PCT = 1.5      # take profit at +1.5%
+SCALP_STOP_PCT = 0.6        # stop loss at -0.6% (tight, fees ~1.2% round trip)
+SCALP_ENTRY_MOVE_PCT = 0.3  # enter if XRP moved up ≥0.3% since last check
+SCALP_COOLDOWN_MINS = 5     # min minutes between scalp entries
+
+def check_scalp(state, prices, cash, total):
+    """
+    XRP micro-scalp layer.
+    Runs every minute. Tracks price momentum and fires quick trades.
+    Returns (action, message) where action is None | 'buy' | 'sell'
+    """
+    xrp_price = prices.get(SCALP_SYMBOL, {}).get("price", 0)
+    if not xrp_price:
+        try:
+            xrp_price = get_price(SCALP_ASSET)
+        except:
+            return None, "XRP price unavailable"
+
+    scalp = state.setdefault("scalp", {
+        "position": None,
+        "last_price": xrp_price,
+        "last_entry_time": 0,
+        "trades_today": 0,
+        "wins": 0, "losses": 0
+    })
+
+    # Update last known price
+    last_price = scalp.get("last_price", xrp_price)
+    price_move_pct = (xrp_price - last_price) / last_price * 100 if last_price else 0
+    scalp["last_price"] = xrp_price
+
+    pos = scalp.get("position")
+
+    # ── Check exit if in position ──
+    if pos:
+        entry = pos["entry"]
+        pnl_pct = (xrp_price - entry) / entry * 100
+
+        if pnl_pct >= SCALP_TARGET_PCT:
+            # SELL — take profit
+            qty_str = f"{pos['qty']:.2f}"
+            status, result = market_sell(SCALP_ASSET, qty_str)
+            if result.get("success"):
+                time.sleep(1)
+                order = get_order(result["success_response"]["order_id"])
+                exit_price = float(order.get("average_filled_price", xrp_price))
+                realized_pnl = (exit_price - entry) * pos["qty"]
+                scalp["position"] = None
+                scalp["wins"] += 1
+                scalp["trades_today"] += 1
+                state["trades"].append({
+                    "time": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+                    "asset": "XRP", "side": "SELL",
+                    "qty": pos["qty"], "entry": entry, "exit": exit_price,
+                    "sizeUsd": pos["size_usd"], "pnl": realized_pnl,
+                    "reason": f"SCALP TAKE-PROFIT +{pnl_pct:.2f}% (target: +{SCALP_TARGET_PCT}%)",
+                    "strategy_context": f"XRP scalp — quick +{pnl_pct:.1f}% | Entry ${entry:.4f} → Exit ${exit_price:.4f}",
+                    "signals": [f"scalp", f"XRP +{pnl_pct:.1f}%"]
+                })
+                return "sell", f"🎯 XRP SCALP TP @ ${exit_price:.4f} | +${realized_pnl:.3f} (+{pnl_pct:.1f}%)"
+
+        elif pnl_pct <= -SCALP_STOP_PCT:
+            # SELL — stop loss
+            qty_str = f"{pos['qty']:.2f}"
+            status, result = market_sell(SCALP_ASSET, qty_str)
+            if result.get("success"):
+                time.sleep(1)
+                order = get_order(result["success_response"]["order_id"])
+                exit_price = float(order.get("average_filled_price", xrp_price))
+                realized_pnl = (exit_price - entry) * pos["qty"]
+                scalp["position"] = None
+                scalp["losses"] += 1
+                scalp["trades_today"] += 1
+                state["trades"].append({
+                    "time": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+                    "asset": "XRP", "side": "SELL",
+                    "qty": pos["qty"], "entry": entry, "exit": exit_price,
+                    "sizeUsd": pos["size_usd"], "pnl": realized_pnl,
+                    "reason": f"SCALP STOP-LOSS {pnl_pct:.2f}% (stop: -{SCALP_STOP_PCT}%)",
+                    "strategy_context": f"XRP scalp stopped out | Entry ${entry:.4f} → Exit ${exit_price:.4f}",
+                    "signals": [f"scalp", f"XRP {pnl_pct:.1f}%"]
+                })
+                return "sell", f"🛑 XRP SCALP SL @ ${exit_price:.4f} | ${realized_pnl:.3f} ({pnl_pct:.1f}%)"
+
+        return None, f"XRP scalp holding: {pnl_pct:+.2f}% | ${xrp_price:.4f}"
+
+    # ── Check entry ──
+    cooldown_elapsed = (time.time() - scalp.get("last_entry_time", 0)) / 60
+    if cooldown_elapsed < SCALP_COOLDOWN_MINS:
+        return None, f"XRP scalp cooldown ({SCALP_COOLDOWN_MINS - cooldown_elapsed:.0f}min)"
+
+    # Need at least $6 cash (scalp $5 + $1 buffer)
+    if cash < 6:
+        return None, f"XRP scalp skipped — not enough cash (${cash:.2f})"
+
+    # Max 12 scalp trades/day
+    if scalp.get("trades_today", 0) >= 12:
+        return None, "XRP scalp daily limit reached (12 trades)"
+
+    # Only enter on upward momentum
+    if price_move_pct >= SCALP_ENTRY_MOVE_PCT:
+        trade_usd = min(SCALP_ALLOC_USD, cash - 1.0)
+        status, result = market_buy(SCALP_ASSET, trade_usd)
+        if result.get("success"):
+            time.sleep(1)
+            order = get_order(result["success_response"]["order_id"])
+            entry_price = float(order.get("average_filled_price", xrp_price))
+            qty = float(order.get("filled_size", 0))
+            scalp["position"] = {
+                "entry": entry_price, "qty": qty,
+                "size_usd": trade_usd, "entry_time": time.time()
+            }
+            scalp["last_entry_time"] = time.time()
+            state["trades"].append({
+                "time": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+                "asset": "XRP", "side": "BUY",
+                "qty": qty, "entry": entry_price, "exit": None,
+                "sizeUsd": trade_usd, "pnl": None,
+                "reason": f"SCALP ENTRY — XRP moved {price_move_pct:+.2f}% in last check (threshold: +{SCALP_ENTRY_MOVE_PCT}%)",
+                "strategy_context": f"Micro-scalp: target +{SCALP_TARGET_PCT}% (${entry_price*1.015:.4f}) | stop -{SCALP_STOP_PCT}% (${entry_price*0.994:.4f})",
+                "signals": [f"scalp", f"move: {price_move_pct:+.2f}%", f"XRP ${entry_price:.4f}"]
+            })
+            return "buy", f"⚡ XRP SCALP ENTRY @ ${entry_price:.4f} | ${trade_usd:.2f} | TP: ${entry_price*1.015:.4f} | SL: ${entry_price*0.994:.4f}"
+
+    return None, f"XRP no signal (move: {price_move_pct:+.2f}%, need: +{SCALP_ENTRY_MOVE_PCT}%)"
 
 def get_trending_news():
     signals = []
@@ -256,6 +388,10 @@ def run_hourly():
     from datetime import date
     start = date.fromisoformat(START_DATE)
     day_num = (date.today() - start).days + 1
+    # Reset daily scalp counter if new day
+    if state.get("last_day") != day_num:
+        state.setdefault("scalp", {})["trades_today"] = 0
+        state["last_day"] = day_num
     state["day"] = day_num
 
     # Get current portfolio
@@ -327,6 +463,22 @@ def run_hourly():
                 del state["positions"]["ETH"]
                 actions_taken.append(f"✅ Sold ETH @ ${exit_price:.2f} | P&L: ${realized_pnl:+.2f}")
                 report_lines.append(f"  ✅ **SOLD** @ ${exit_price:.2f} | Realized P&L: ${realized_pnl:+.2f}")
+
+    # ── XRP Scalp Layer ──
+    xrp_price = prices.get("XRP", {}).get("price", 0)
+    scalp_action, scalp_msg = check_scalp(state, prices, cash, total)
+    if scalp_action:
+        actions_taken.append(scalp_msg)
+        report_lines.append(f"")
+        report_lines.append(f"{scalp_msg}")
+        # Refresh cash after scalp trade
+        time.sleep(1)
+        total, cash, live_positions = get_portfolio()
+    else:
+        # Only show scalp status occasionally
+        run_count = len(state.get("balance_history", []))
+        if run_count % 5 == 0:
+            report_lines.append(f"  📊 XRP scalp: {scalp_msg}")
 
     # ── Refresh cash after potential sell ──
     if actions_taken:
