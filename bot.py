@@ -131,15 +131,40 @@ def get_crypto_prices():
         return {}
 
 def get_trending_news():
+    signals = []
     try:
-        r = requests.get(
-            "https://api.coingecko.com/api/v3/search/trending",
-            timeout=10
-        )
+        # Trending coins on CoinGecko
+        r = requests.get("https://api.coingecko.com/api/v3/search/trending", timeout=10)
         coins = r.json().get("coins", [])[:3]
-        return [f"{c['item']['name']} (#{c['item']['market_cap_rank']})" for c in coins]
+        for c in coins:
+            signals.append({"source": "CoinGecko Trending", "text": f"{c['item']['name']} trending (rank #{c['item']['market_cap_rank']})", "sentiment": "bullish"})
     except:
-        return []
+        pass
+
+    try:
+        # Fear & Greed index
+        r = requests.get("https://api.alternative.me/fng/?limit=1", timeout=10)
+        d = r.json()["data"][0]
+        val = int(d["value"])
+        label = d["value_classification"]
+        sentiment = "bullish" if val > 50 else "bearish" if val < 30 else "neutral"
+        signals.append({"source": "Fear & Greed", "text": f"Index: {val}/100 — {label}", "sentiment": sentiment})
+    except:
+        pass
+
+    try:
+        # CoinGecko global market data
+        r = requests.get("https://api.coingecko.com/api/v3/global", timeout=10)
+        g = r.json().get("data", {})
+        btc_dom = g.get("market_cap_percentage", {}).get("btc", 0)
+        total_cap = g.get("total_market_cap", {}).get("usd", 0)
+        change = g.get("market_cap_change_percentage_24h_usd", 0)
+        sentiment = "bullish" if change > 1 else "bearish" if change < -1 else "neutral"
+        signals.append({"source": "Global Market", "text": f"Total cap: ${total_cap/1e9:.0f}B | 24h: {change:+.1f}% | BTC dom: {btc_dom:.1f}%", "sentiment": sentiment})
+    except:
+        pass
+
+    return signals
 
 # ── Trading logic ─────────────────────────────────────────────────────────────
 def should_sell_eth(state, current_price):
@@ -299,11 +324,14 @@ def run_hourly():
     if len(state["balance_history"]) > 720:  # keep 30 days of hourly data
         state["balance_history"] = state["balance_history"][-720:]
 
-    # Trending
-    trending = get_trending_news()
-    if trending:
+    # News & signals
+    signals = get_trending_news()
+    if signals:
         report_lines.append(f"")
-        report_lines.append(f"🔥 **Trending:** {', '.join(trending)}")
+        report_lines.append(f"📰 **Market Signals:**")
+        for s in signals:
+            emoji = "🟢" if s["sentiment"] == "bullish" else "🔴" if s["sentiment"] == "bearish" else "🟡"
+            report_lines.append(f"  {emoji} [{s['source']}] {s['text']}")
 
     report_lines.append(f"")
     report_lines.append(f"_Next check in ~1 hour_")
