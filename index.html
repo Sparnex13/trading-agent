@@ -68,6 +68,7 @@
   .strategy-note .label { font-size: 11px; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
   
   #lastUpdate { font-size: 11px; color: #4b5563; margin-top: 4px; }
+  #refreshCountdown { font-size: 11px; color: #374151; margin-top: 2px; }
   
   .row-flex { display: flex; gap: 16px; padding: 0 24px 20px; }
   .row-flex .card { flex: 1; }
@@ -79,6 +80,7 @@
   <div>
     <h1>⚡ Trading Agent Dashboard</h1>
     <div id="lastUpdate">Loading...</div>
+    <div id="refreshCountdown"></div>
   </div>
   <div class="live-badge"><span class="live-dot"></span> LIVE</div>
 </header>
@@ -529,7 +531,10 @@ function applyState(data) {
 
 async function fetchLiveState() {
   try {
-    const resp = await fetch(STATE_URL + "?t=" + Date.now()); // cache bust
+    const resp = await fetch(STATE_URL, {
+      cache: "no-store",
+      headers: { "Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache" }
+    });
     if (!resp.ok) return;
     const data = await resp.json();
     applyState(data);
@@ -558,9 +563,19 @@ renderTrades();
 drawChart();
 window.addEventListener('resize', drawChart);
 
+// Countdown timer
+let nextRefresh = Date.now() + REFRESH_INTERVAL;
+function updateCountdown() {
+  const sec = Math.max(0, Math.round((nextRefresh - Date.now()) / 1000));
+  const el = document.getElementById('refreshCountdown');
+  if (el) el.textContent = `Refreshing in ${sec}s`;
+}
+setInterval(updateCountdown, 1000);
+updateCountdown();
+
 // Fetch live data immediately then every 60s
 fetchLiveState();
-setInterval(fetchLiveState, REFRESH_INTERVAL);
+setInterval(() => { nextRefresh = Date.now() + REFRESH_INTERVAL; fetchLiveState(); }, REFRESH_INTERVAL);
 </script>
 </body>
 </html>
