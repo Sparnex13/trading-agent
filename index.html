@@ -567,8 +567,8 @@ window.closePosition = function(asset) {
 };
 
 // ── Live data fetch from GitHub ──────────────────────────────────────────────
-// Use GitHub API endpoint — has CORS headers unlike raw.githubusercontent.com
-const STATE_URL = "https://api.github.com/repos/Sparnex13/trading-agent/contents/state.json";
+// Fetch state.json from same origin (GitHub Pages serves it alongside index.html)
+const STATE_URL = "./state.json";
 const REFRESH_INTERVAL = 60000; // 60 seconds
 
 function applyState(data) {
@@ -599,15 +599,9 @@ function applyState(data) {
 
 async function fetchLiveState() {
   try {
-    const resp = await fetch(STATE_URL, {
-      cache: "no-store",
-      headers: { "Accept": "application/vnd.github.v3+json" }
-    });
+    const resp = await fetch(STATE_URL, { cache: "no-store" });
     if (!resp.ok) return;
-    const envelope = await resp.json();
-    // GitHub API returns base64-encoded content
-    const decoded = atob(envelope.content.replace(/\n/g, ''));
-    const data = JSON.parse(decoded);
+    const data = await resp.json();
     applyState(data);
     updateStats();
     renderHoldings();
