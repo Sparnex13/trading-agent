@@ -1,0 +1,315 @@
+#!/usr/bin/env python3
+"""
+Trading Agent Bot — Hourly monitor + execution
+Goal: $40 → $1000 in 30 days
+"""
+
+import jwt, time, secrets, requests, json, uuid, os, sys
+from datetime import datetime, timezone
+from cryptography.hazmat.primitives.serialization import load_pem_private_key
+
+# ── Config ──────────────────────────────────────────────────────────────────
+KEY_NAME = "organizations/554326fb-7744-4bae-a194-1b96ee7e9c58/apiKeys/c6238882-932b-4f8e-a966-31cb7686b56a"
+PRIVATE_KEY_PEM = b"""-----BEGIN EC PRIVATE KEY-----
+MHcCAQEEII26+gatABTgrcnIDmElCKh+1h32DvlHgB35nktG1VN2oAoGCCqGSM49
+AwEHoUQDQgAEP/CbGkm6WWfACVqLR3A7u5SUu2gQKT3JDhR6f7EX/0mFKtRpl6+Y
+PnRwZbrPVoZUJsGxlxNaTcz7mIF49PTn9Q==
+-----END EC PRIVATE KEY-----"""
+
+PORTFOLIO_UUID = "a0174166-1f88-51f5-aa9f-0970696063f1"
+START_BALANCE = 40.00
+START_DATE = "2026-03-29"
+TARGET = 1000.00
+
+STATE_FILE = os.path.join(os.path.dirname(__file__), "state.json")
+
+# Position tracking (loaded from state file)
+DEFAULT_STATE = {
+    "positions": {},  # asset -> {qty, entry, stop_loss, target, size_usd, order_id}
+    "trades": [],
+    "balance_history": [{"time": START_DATE, "value": START_BALANCE}],
+    "start_balance": START_BALANCE,
+    "day": 1,
+}
+
+# ── Coinbase API ─────────────────────────────────────────────────────────────
+def make_jwt(method, path):
+    private_key = load_pem_private_key(PRIVATE_KEY_PEM, password=None)
+    payload = {
+        "sub": KEY_NAME, "iss": "cdp",
+        "nbf": int(time.time()), "exp": int(time.time()) + 120,
+        "uri": f"{method} api.coinbase.com{path}"
+    }
+    return jwt.encode(payload, private_key, algorithm="ES256",
+                      headers={"kid": KEY_NAME, "nonce": secrets.token_hex(16)})
+
+def cb_get(path):
+    token = make_jwt("GET", path)
+    r = requests.get(f"https://api.coinbase.com{path}",
+                     headers={"Authorization": f"Bearer {token}"}, timeout=10)
+    return r.json()
+
+def cb_post(path, body):
+    token = make_jwt("POST", path)
+    r = requests.post(f"https://api.coinbase.com{path}",
+                      headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+                      json=body, timeout=10)
+    return r.status_code, r.json()
+
+def get_portfolio():
+    data = cb_get(f"/api/v3/brokerage/portfolios/{PORTFOLIO_UUID}")
+    breakdown = data.get("breakdown", {})
+    balances = breakdown.get("portfolio_balances", {})
+    total = float(balances.get("total_balance", {}).get("value", 0))
+    cash = float(balances.get("total_cash_equivalent_balance", {}).get("value", 0))
+    positions = {}
+    for pos in breakdown.get("spot_positions", []):
+        val = float(pos.get("total_balance_fiat", 0))
+        qty = float(pos.get("total_balance_crypto", 0))
+        asset = pos.get("asset", "")
+        if val > 0.01:
+            positions[asset] = {"qty": qty, "fiat_value": val}
+    return total, cash, positions
+
+def get_price(product_id):
+    """Get current price for a product"""
+    data = cb_get(f"/api/v3/brokerage/products/{product_id}")
+    return float(data.get("price", 0))
+
+def market_buy(product_id, quote_size_usd):
+    """Buy $X worth of an asset"""
+    status, result = cb_post("/api/v3/brokerage/orders", {
+        "client_order_id": str(uuid.uuid4()),
+        "product_id": product_id,
+        "side": "BUY",
+        "order_configuration": {"market_market_ioc": {"quote_size": str(round(quote_size_usd, 2))}}
+    })
+    return status, result
+
+def market_sell(product_id, base_size):
+    """Sell X units of an asset"""
+    status, result = cb_post("/api/v3/brokerage/orders", {
+        "client_order_id": str(uuid.uuid4()),
+        "product_id": product_id,
+        "side": "SELL",
+        "order_configuration": {"market_market_ioc": {"base_size": str(base_size)}}
+    })
+    return status, result
+
+def get_order(order_id):
+    data = cb_get(f"/api/v3/brokerage/orders/historical/{order_id}")
+    return data.get("order", {})
+
+# ── State management ──────────────────────────────────────────────────────────
+def load_state():
+    if os.path.exists(STATE_FILE):
+        with open(STATE_FILE) as f:
+            return json.load(f)
+    return dict(DEFAULT_STATE)
+
+def save_state(state):
+    with open(STATE_FILE, "w") as f:
+        json.dump(state, f, indent=2)
+
+# ── Market research ───────────────────────────────────────────────────────────
+def get_crypto_prices():
+    try:
+        r = requests.get(
+            "https://api.coingecko.com/api/v3/coins/markets"
+            "?vs_currency=usd&ids=bitcoin,ethereum,solana,ripple"
+            "&order=market_cap_desc&per_page=4&page=1"
+            "&price_change_percentage=1h,24h",
+            timeout=10
+        )
+        return {c["symbol"].upper(): {
+            "price": c["current_price"],
+            "change_1h": c.get("price_change_percentage_1h_in_currency", 0),
+            "change_24h": c.get("price_change_percentage_24h", 0),
+            "volume": c.get("total_volume", 0),
+        } for c in r.json()}
+    except Exception as e:
+        return {}
+
+def get_trending_news():
+    try:
+        r = requests.get(
+            "https://api.coingecko.com/api/v3/search/trending",
+            timeout=10
+        )
+        coins = r.json().get("coins", [])[:3]
+        return [f"{c['item']['name']} (#{c['item']['market_cap_rank']})" for c in coins]
+    except:
+        return []
+
+# ── Trading logic ─────────────────────────────────────────────────────────────
+def should_sell_eth(state, current_price):
+    """Check if we should exit ETH position"""
+    pos = state["positions"].get("ETH")
+    if not pos:
+        return False, None
+
+    entry = pos["entry"]
+    stop = pos["stop_loss"]
+    target = pos["target"]
+    pnl_pct = (current_price - entry) / entry * 100
+
+    if current_price <= stop:
+        return True, f"STOP-LOSS HIT — price ${current_price:.2f} <= stop ${stop:.2f} ({pnl_pct:.1f}%)"
+    if current_price >= target:
+        return True, f"TAKE-PROFIT HIT — price ${current_price:.2f} >= target ${target:.2f} (+{pnl_pct:.1f}%)"
+    # Trailing: if up >5% and starts reversing >2% from peak, sell
+    if pnl_pct >= 5 and pos.get("peak_price", 0) > 0:
+        peak = pos.get("peak_price", current_price)
+        drawdown_from_peak = (current_price - peak) / peak * 100
+        if drawdown_from_peak < -2:
+            return True, f"TRAILING EXIT — {pnl_pct:.1f}% up but reversing {drawdown_from_peak:.1f}% from peak"
+
+    return False, None
+
+def decide_next_trade(state, cash, prices, total_balance):
+    """Decide whether to enter a new position"""
+    if total_balance < 5:
+        return None, "Insufficient funds"
+
+    # Don't trade if already heavily invested
+    eth_pos = state["positions"].get("ETH")
+    invested_pct = (total_balance - cash) / total_balance * 100 if total_balance > 0 else 0
+    if invested_pct > 85:
+        return None, "Already >85% invested"
+
+    if cash < 5:
+        return None, "Not enough cash buffer"
+
+    eth = prices.get("ETH", {})
+    btc = prices.get("BTC", {})
+
+    # Prefer ETH if 1h momentum is positive and 24h change isn't too negative
+    if eth:
+        change_1h = eth.get("change_1h", 0) or 0
+        change_24h = eth.get("change_24h", 0) or 0
+        if change_1h > 0.3 and change_24h > -5:
+            trade_usd = min(cash * 0.8, total_balance * 0.2)  # max 20% of portfolio
+            return ("ETH-USD", trade_usd), f"ETH momentum: +{change_1h:.2f}% 1h, {change_24h:.2f}% 24h"
+
+    return None, "No strong signal — holding cash"
+
+# ── Main hourly run ───────────────────────────────────────────────────────────
+def run_hourly():
+    now = datetime.now(timezone.utc)
+    ts = now.strftime("%Y-%m-%d %H:%M UTC")
+    state = load_state()
+
+    # Day counter
+    from datetime import date
+    start = date.fromisoformat(START_DATE)
+    day_num = (date.today() - start).days + 1
+    state["day"] = day_num
+
+    # Get current portfolio
+    total, cash, live_positions = get_portfolio()
+
+    # Get prices
+    prices = get_crypto_prices()
+    eth_price = prices.get("ETH", {}).get("price") or get_price("ETH-USD")
+    btc_price = prices.get("BTC", {}).get("price", 0)
+
+    # Update peak prices for trailing stops
+    if "ETH" in state["positions"] and eth_price:
+        pos = state["positions"]["ETH"]
+        pos["peak_price"] = max(pos.get("peak_price", eth_price), eth_price)
+
+    report_lines = [
+        f"📊 **HOURLY REPORT — Day {day_num}/30 — {ts}**",
+        f"",
+        f"**Portfolio:** ${total:.2f} | Start: ${START_BALANCE:.2f} | Change: {'+' if total >= START_BALANCE else ''}{((total - START_BALANCE)/START_BALANCE*100):.1f}%",
+        f"**Goal progress:** ${total:.2f} / ${TARGET:.2f} ({total/TARGET*100:.1f}%)",
+        f"**Cash:** ${cash:.2f} | **Crypto:** ${total - cash:.2f}",
+        f"",
+        f"**Prices:** ETH ${eth_price:,.2f} | BTC ${btc_price:,.0f}",
+    ]
+
+    actions_taken = []
+
+    # ── Check exit conditions ──
+    if "ETH" in state["positions"] and eth_price:
+        should_exit, reason = should_sell_eth(state, eth_price)
+        pos = state["positions"]["ETH"]
+        unrealized_pnl = (eth_price - pos["entry"]) * pos["qty"]
+        unrealized_pct = (eth_price - pos["entry"]) / pos["entry"] * 100
+
+        report_lines.append(f"**Open Position:** ETH {pos['qty']:.6f} @ ${pos['entry']:.2f} entry")
+        report_lines.append(f"  Current: ${eth_price:.2f} | P&L: {'+' if unrealized_pnl >= 0 else ''}${unrealized_pnl:.2f} ({'+' if unrealized_pct >= 0 else ''}{unrealized_pct:.1f}%)")
+        report_lines.append(f"  Stop: ${pos['stop_loss']:.2f} | Target: ${pos['target']:.2f}")
+
+        if should_exit:
+            # SELL
+            report_lines.append(f"  🚨 **EXIT TRIGGERED:** {reason}")
+            eth_qty = live_positions.get("ETH", {}).get("qty", pos["qty"])
+            status, result = market_sell("ETH-USD", f"{eth_qty:.6f}")
+            if result.get("success"):
+                order_id = result["success_response"]["order_id"]
+                time.sleep(3)
+                order = get_order(order_id)
+                exit_price = float(order.get("average_filled_price", eth_price))
+                realized_pnl = (exit_price - pos["entry"]) * pos["qty"]
+                state["trades"].append({
+                    "time": ts, "asset": "ETH", "side": "SELL",
+                    "qty": pos["qty"], "entry": pos["entry"], "exit": exit_price,
+                    "pnl": realized_pnl, "reason": reason
+                })
+                del state["positions"]["ETH"]
+                actions_taken.append(f"✅ Sold ETH @ ${exit_price:.2f} | P&L: ${realized_pnl:+.2f}")
+                report_lines.append(f"  ✅ **SOLD** @ ${exit_price:.2f} | Realized P&L: ${realized_pnl:+.2f}")
+
+    # ── Refresh cash after potential sell ──
+    if actions_taken:
+        time.sleep(2)
+        total, cash, live_positions = get_portfolio()
+
+    # ── Check entry conditions ──
+    if "ETH" not in state["positions"]:
+        trade_signal, signal_reason = decide_next_trade(state, cash, prices, total)
+        if trade_signal:
+            product_id, trade_usd = trade_signal
+            report_lines.append(f"")
+            report_lines.append(f"📈 **ENTRY SIGNAL:** {signal_reason}")
+            status, result = market_buy(product_id, trade_usd)
+            if result.get("success"):
+                order_id = result["success_response"]["order_id"]
+                time.sleep(3)
+                order = get_order(order_id)
+                entry_price = float(order.get("average_filled_price", eth_price))
+                qty = float(order.get("filled_size", 0))
+                stop = entry_price * 0.90
+                target = entry_price * 1.08
+                state["positions"]["ETH"] = {
+                    "qty": qty, "entry": entry_price,
+                    "stop_loss": stop, "target": target,
+                    "size_usd": trade_usd, "peak_price": entry_price,
+                    "order_id": order_id
+                }
+                actions_taken.append(f"✅ Bought {qty:.6f} ETH @ ${entry_price:.2f}")
+                report_lines.append(f"✅ **BOUGHT** {qty:.6f} ETH @ ${entry_price:.2f} | Stop: ${stop:.2f} | Target: ${target:.2f}")
+        else:
+            report_lines.append(f"")
+            report_lines.append(f"⏸️ **No new entry:** {signal_reason}")
+
+    # ── Update balance history ──
+    state["balance_history"].append({"time": ts, "value": round(total, 4)})
+    if len(state["balance_history"]) > 720:  # keep 30 days of hourly data
+        state["balance_history"] = state["balance_history"][-720:]
+
+    # Trending
+    trending = get_trending_news()
+    if trending:
+        report_lines.append(f"")
+        report_lines.append(f"🔥 **Trending:** {', '.join(trending)}")
+
+    report_lines.append(f"")
+    report_lines.append(f"_Next check in ~1 hour_")
+
+    save_state(state)
+    return "\n".join(report_lines)
+
+if __name__ == "__main__":
+    print(run_hourly())
