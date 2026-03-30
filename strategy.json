@@ -4,8 +4,8 @@
   "momentum_threshold_1h": 0.1,
   "max_position_pct": 70.0,
   "preferred_asset": "ETH-USD",
-  "last_updated": "2026-03-30 03:01 UTC",
-  "reasoning": "Market regime: extreme_fear | F&G: 8/100 (7d avg: 11) | ETH: 1h=+1.00% 24h=+1.06% 7d=-1.63% | BTC: 24h=+0.51% | Dominance: 56.1% | Extreme fear \u2192 tightening take-profit to 5% (high volatility, take gains fast) | Bear/extreme fear \u2192 tightening stop-loss to 7% | Extreme fear \u2192 lowering 1h momentum threshold to 0.1% (scarce signals) | Extreme fear \u2192 70% max position (keep more buffer)",
+  "last_updated": "2026-03-30 03:29 UTC",
+  "reasoning": "Market regime: extreme_fear | F&G: 8/100 (7d avg: 11) | ETH: 1h=+1.25% 24h=+1.21% 7d=-1.21% | BTC: 24h=+0.32% | Dominance: 56.1% | Extreme fear \u2192 tightening take-profit to 5% (high volatility, take gains fast) | Bear/extreme fear \u2192 tightening stop-loss to 7% | Extreme fear \u2192 lowering 1h momentum threshold to 0.1% (scarce signals) | Extreme fear \u2192 70% max position (keep more buffer)",
   "market_regime": "extreme_fear",
   "fear_greed": 8,
   "adjustments_log": [
@@ -16,6 +16,23 @@
         "stop_loss: 10.0% \u2192 7.0%",
         "momentum_1h_threshold: 0.3 \u2192 0.1",
         "max_position: 80.0% \u2192 70.0%"
+      ],
+      "regime": "extreme_fear",
+      "fear_greed": 8
+    },
+    {
+      "time": "2026-03-30 03:28 UTC",
+      "changes": [
+        "take_profit GLINT BOOST: 5.0% \u2192 7.5%"
+      ],
+      "regime": "extreme_fear",
+      "fear_greed": 8,
+      "trigger": "Glint: Fed rate cut signal from NickTimiraos"
+    },
+    {
+      "time": "2026-03-30 03:29 UTC",
+      "changes": [
+        "take_profit: 7.5% \u2192 5.0%"
       ],
       "regime": "extreme_fear",
       "fear_greed": 8

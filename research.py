@@ -76,6 +76,90 @@ def fetch_trending():
     except:
         return []
 
+def fetch_glint_signals():
+    """
+    Read recent Glint signals from the #tradingbot Discord channel via bot API.
+    Glint posts as embeds — we fetch channel messages using the bot token.
+    Returns list of parsed signal dicts with full embed content.
+    """
+    import subprocess, os
+    signals = []
+    try:
+        # Get bot token from env
+        env_file = os.path.expanduser("~/.openclaw/.env")
+        token = None
+        if os.path.exists(env_file):
+            with open(env_file) as f:
+                for line in f:
+                    if line.startswith("DISCORD_BOT_TOKEN="):
+                        token = line.strip().split("=", 1)[1].strip('"\'')
+                        break
+
+        if not token:
+            return signals
+
+        # Fetch messages from channel via Discord API
+        headers = {"Authorization": f"Bot {token}", "Content-Type": "application/json"}
+        r = requests.get(
+            "https://discord.com/api/v10/channels/1488011252256211004/messages?limit=10",
+            headers=headers, timeout=8
+        )
+        if r.status_code != 200:
+            return signals
+
+        messages = r.json()
+        for msg in messages:
+            author = msg.get("author", {}).get("username", "")
+            if "glint" not in author.lower() and "Glint" not in str(msg.get("embeds", "")):
+                continue
+
+            # Extract embed content
+            embeds = msg.get("embeds", [])
+            for embed in embeds:
+                title = embed.get("title", "")
+                desc = embed.get("description", "")
+                fields = embed.get("fields", [])
+                full_text = f"{title} {desc} " + " ".join(f.get("value","") for f in fields)
+                if full_text.strip():
+                    signals.append({"raw": full_text.strip(), "source": "Glint", "sentiment": "neutral"})
+
+            # Also check plain text content (some webhooks send as content)
+            content = msg.get("content", "")
+            if content and len(content) > 20:
+                signals.append({"raw": content, "source": "Glint", "sentiment": "neutral"})
+
+    except Exception as e:
+        pass
+
+    return signals
+
+def parse_glint_sentiment(signals):
+    """
+    Analyze Glint signals for crypto market impact.
+    Returns (sentiment_score, key_signals) where sentiment_score is -1 to +1.
+    """
+    score = 0
+    key = []
+    
+    for s in signals:
+        raw = s.get("raw", "").lower()
+        
+        # Bullish signals
+        if any(kw in raw for kw in ["rate cut", "fed cut", "bullish", "rally", "etf approved", "institutional"]):
+            score += 0.5
+            key.append(f"🟢 BULLISH: {s['raw'][:80]}")
+        
+        # Bearish signals  
+        elif any(kw in raw for kw in ["rate hike", "crash", "ban", "regulation", "sec", "arrest", "hack", "exploit"]):
+            score -= 0.5
+            key.append(f"🔴 BEARISH: {s['raw'][:80]}")
+        
+        # Neutral/uncertain
+        else:
+            key.append(f"🟡 NEUTRAL: {s['raw'][:80]}")
+    
+    return max(-1, min(1, score)), key
+
 def fetch_top_gainers():
     """Get top movers from CoinGecko"""
     try:
@@ -115,7 +199,7 @@ def analyze_performance(state):
         "note": f"{len(wins)}W/{len(losses)}L"
     }
 
-def determine_strategy(fear_greed, avg_7d_fg, market_data, global_data, perf, state):
+def determine_strategy(fear_greed, avg_7d_fg, market_data, global_data, perf, state, **kwargs):
     """
     Core research logic — determines optimal parameters based on current conditions.
     Returns updated strategy dict with reasoning.
@@ -270,6 +354,24 @@ def determine_strategy(fear_greed, avg_7d_fg, market_data, global_data, perf, st
         # Keep last 48 adjustments
         strategy["adjustments_log"] = strategy["adjustments_log"][-48:]
 
+    # ── Glint macro signal override ───────────────────────────────────────
+    # If Glint has a strong bullish signal (Fed rate cut etc.), extend take-profit
+    glint_score = kwargs.get("glint_score", 0)
+    if glint_score >= 0.5:
+        old_tp = strategy["take_profit_pct"]
+        new_tp = min(old_tp * 1.5, 15.0)  # boost take-profit by 50%, cap at 15%
+        if new_tp > old_tp + 1:
+            changes.append(f"take_profit GLINT BOOST: {old_tp}% → {new_tp:.1f}% (macro bullish signal)")
+            strategy["take_profit_pct"] = new_tp
+            reasoning_parts.append(f"Glint macro signal bullish ({glint_score:+.1f}) → extending take-profit to {new_tp:.1f}%")
+    elif glint_score <= -0.5:
+        old_tp = strategy["take_profit_pct"]
+        new_tp = max(old_tp * 0.7, 3.0)  # shrink take-profit, take gains fast
+        if new_tp < old_tp - 1:
+            changes.append(f"take_profit GLINT CUT: {old_tp}% → {new_tp:.1f}% (macro bearish signal)")
+            strategy["take_profit_pct"] = new_tp
+            reasoning_parts.append(f"Glint macro signal bearish ({glint_score:+.1f}) → tightening take-profit to {new_tp:.1f}%")
+
     return strategy, changes
 
 def run_research():
@@ -283,11 +385,14 @@ def run_research():
     trending = fetch_trending()
     gainers = fetch_top_gainers()
     perf = analyze_performance(state)
+    glint_signals = fetch_glint_signals()
+    glint_score, glint_key = parse_glint_sentiment(glint_signals)
 
     # Determine and save new strategy
     strategy, changes = determine_strategy(
         fear_greed, avg_7d_fg or 50,
-        market_data, global_data, perf, state
+        market_data, global_data, perf, state,
+        glint_score=glint_score
     )
     save_strategy(strategy)
 
@@ -323,6 +428,11 @@ def run_research():
         f"  Take-profit: {strategy['take_profit_pct']}% | Stop-loss: {strategy['stop_loss_pct']}% | Max position: {strategy['max_position_pct']}%",
         f"  Momentum threshold: {strategy['momentum_threshold_1h']}%/1h | Preferred asset: {strategy['preferred_asset']}",
     ]
+
+    if glint_key:
+        lines += [f"", f"⚡ **Glint Macro Signals (score: {glint_score:+.1f}):**"]
+        for k in glint_key[:3]:
+            lines.append(f"  {k}")
 
     if trending:
         names = [c.get("name","?") for c in trending[:3]]
