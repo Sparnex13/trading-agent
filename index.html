@@ -120,6 +120,21 @@
   </div>
 </div>
 
+<!-- Current Holdings -->
+<div class="section" style="padding-top:0;">
+  <div class="section-title">Current Holdings</div>
+  <div class="card" style="padding:0;">
+    <table>
+      <thead><tr>
+        <th>Asset</th><th>Quantity</th><th>Entry Price</th><th>Current Price</th><th>Value (USD)</th><th>Unrealized P&L</th><th>Stop-Loss</th><th>Target</th><th>% of Portfolio</th>
+      </tr></thead>
+      <tbody id="holdingsBody">
+        <tr><td colspan="9" style="color:#4b5563;text-align:center;padding:20px;">Loading holdings...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
 <!-- Liquidity + Strategy row -->
 <div class="row-flex">
   <div class="liquidity" style="flex:0 0 auto;">
@@ -213,9 +228,10 @@
 const state = {
   startBalance: 40.00,
   currentBalance: 40.013558,
+  cashBalance: 1.70,
   todayPnl: 0,
   trades: [],
-  positions: [],
+  positions: {},  // keyed by asset symbol
   chartData: [40.00],
   chartLabels: ['Start'],
   startDate: new Date('2026-03-29'),
@@ -380,10 +396,84 @@ function drawChart() {
   labels.forEach((l, i) => { if (i % step === 0 || i === labels.length - 1) ctx.fillText(l, toX(i), h - 5); });
 }
 
+function renderHoldings() {
+  const tbody = document.getElementById('holdingsBody');
+  const positions = state.positions || {};
+  const total = state.currentBalance || 0;
+
+  // Build rows: open positions + cash buffer
+  const rows = [];
+
+  // Open positions
+  Object.entries(positions).forEach(([asset, pos]) => {
+    const qty = pos.qty || 0;
+    const entry = pos.entry || 0;
+    const stop = pos.stop_loss || (entry * 0.90);
+    const target = pos.target || (entry * 1.08);
+    // Use last known price from chart or entry
+    const current = pos.current_price || entry;
+    const value = qty * current;
+    const pnl = (current - entry) * qty;
+    const pnlPct = entry > 0 ? ((current - entry) / entry * 100) : 0;
+    const portfolioPct = total > 0 ? (value / total * 100) : 0;
+    const pnlClass = pnl >= 0 ? 'up' : 'down';
+
+    rows.push(`<tr>
+      <td style="font-weight:700;color:#a78bfa;">${asset}</td>
+      <td style="font-family:monospace;">${qty.toFixed(6)}</td>
+      <td>$${entry.toFixed(2)}</td>
+      <td>$${current.toFixed(2)}</td>
+      <td style="font-weight:600;">$${value.toFixed(2)}</td>
+      <td class="${pnlClass}" style="font-weight:600;">${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)} (${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(1)}%)</td>
+      <td style="color:#f87171;">$${stop.toFixed(2)}</td>
+      <td style="color:#34d399;">$${target.toFixed(2)}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="background:#1e1e2e;border-radius:999px;height:6px;width:60px;overflow:hidden;">
+            <div style="background:#7c3aed;height:100%;border-radius:999px;width:${Math.min(portfolioPct,100)}%"></div>
+          </div>
+          <span style="font-size:11px;color:#6b7280;">${portfolioPct.toFixed(1)}%</span>
+        </div>
+      </td>
+    </tr>`);
+  });
+
+  // Cash row
+  const cash = state.cashBalance || 0;
+  if (cash > 0.01) {
+    const cashPct = total > 0 ? (cash / total * 100) : 0;
+    rows.push(`<tr>
+      <td style="font-weight:700;color:#34d399;">USD Cash</td>
+      <td style="font-family:monospace;">—</td>
+      <td>—</td>
+      <td>—</td>
+      <td style="font-weight:600;">$${cash.toFixed(2)}</td>
+      <td style="color:#34d399;">—</td>
+      <td style="color:#6b7280;">—</td>
+      <td style="color:#6b7280;">—</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="background:#1e1e2e;border-radius:999px;height:6px;width:60px;overflow:hidden;">
+            <div style="background:#34d399;height:100%;border-radius:999px;width:${Math.min(cashPct,100)}%"></div>
+          </div>
+          <span style="font-size:11px;color:#6b7280;">${cashPct.toFixed(1)}%</span>
+        </div>
+      </td>
+    </tr>`);
+  }
+
+  if (rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" style="color:#4b5563;text-align:center;padding:20px;">No holdings data yet</td></tr>';
+  } else {
+    tbody.innerHTML = rows.join('');
+  }
+}
+
 // Public API for updating dashboard from trade engine
 window.updateDashboard = function(patch) {
   Object.assign(state, patch);
   updateStats();
+  renderHoldings();
   renderPositions();
   renderTrades();
   drawChart();
@@ -408,8 +498,22 @@ window.closePosition = function(asset) {
   renderPositions();
 };
 
+// Seed initial ETH position from what we know
+state.positions = {
+  "ETH": {
+    qty: 0.018013,
+    entry: 2018.00,
+    stop_loss: 1816.20,
+    target: 2101.30,
+    current_price: 2028.00,
+    size_usd: 36.38
+  }
+};
+state.cashBalance = 1.70;
+
 // Init
 updateStats();
+renderHoldings();
 renderPositions();
 renderTrades();
 drawChart();

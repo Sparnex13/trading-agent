@@ -373,6 +373,13 @@ def run_hourly():
             report_lines.append(f"")
             report_lines.append(f"⏸️ **No new entry:** {signal_reason}")
 
+    # ── Update live prices on positions for dashboard ──
+    if "ETH" in state["positions"] and eth_price:
+        state["positions"]["ETH"]["current_price"] = eth_price
+
+    # ── Store cash balance ──
+    state["cash"] = round(cash, 2)
+
     # ── Update balance history ──
     state["balance_history"].append({"time": ts, "value": round(total, 4)})
     if len(state["balance_history"]) > 720:  # keep 30 days of hourly data
