@@ -158,16 +158,9 @@
 
 <!-- Trade History -->
 <div class="section">
-  <div class="section-title">Trade History</div>
-  <div class="card" style="padding:0;">
-    <table>
-      <thead><tr>
-        <th>Time</th><th>Asset</th><th>Side</th><th>Size (USD)</th><th>Entry</th><th>Exit</th><th>P&L</th><th>Reasoning</th>
-      </tr></thead>
-      <tbody id="tradeHistory">
-        <tr><td colspan="8" style="color:#4b5563;text-align:center;padding:20px;">No completed trades yet</td></tr>
-      </tbody>
-    </table>
+  <div class="section-title">Trade History & Strategy Log</div>
+  <div id="tradeLog">
+    <div style="color:#4b5563;text-align:center;padding:24px;background:#111118;border:1px solid #1e1e2e;border-radius:12px;">No completed trades yet</div>
   </div>
 </div>
 
@@ -271,23 +264,49 @@ function renderPositions() {
 }
 
 function renderTrades() {
-  const tbody = document.getElementById('tradeHistory');
-  if (state.trades.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" style="color:#4b5563;text-align:center;padding:20px;">No completed trades yet</td></tr>';
+  const container = document.getElementById('tradeLog');
+  if (!state.trades || state.trades.length === 0) {
+    container.innerHTML = '<div style="color:#4b5563;text-align:center;padding:24px;background:#111118;border:1px solid #1e1e2e;border-radius:12px;">No completed trades yet</div>';
     return;
   }
-  tbody.innerHTML = state.trades.slice().reverse().map(t => {
-    const cls = t.pnl > 0 ? 'badge-green' : t.pnl < 0 ? 'badge-red' : 'badge-blue';
-    return `<tr>
-      <td style="color:#6b7280;">${t.time}</td>
-      <td style="font-weight:600;">${t.asset}</td>
-      <td><span class="badge ${t.side === 'BUY' ? 'badge-green' : 'badge-red'}">${t.side}</span></td>
-      <td>$${t.sizeUsd.toFixed(2)}</td>
-      <td>$${t.entry.toFixed(4)}</td>
-      <td>${t.exit ? '$'+t.exit.toFixed(4) : '—'}</td>
-      <td class="${t.pnl > 0 ? 'up' : t.pnl < 0 ? 'down' : 'neutral'}">${t.pnl !== null ? (t.pnl >= 0 ? '+' : '')+'$'+t.pnl.toFixed(2) : '—'}</td>
-      <td style="color:#6b7280;font-size:11px;max-width:200px;">${t.reason}</td>
-    </tr>`;
+  container.innerHTML = state.trades.slice().reverse().map(t => {
+    const win = t.pnl > 0;
+    const loss = t.pnl < 0;
+    const pnlColor = win ? '#34d399' : loss ? '#f87171' : '#94a3b8';
+    const pnlBg = win ? '#064e3b' : loss ? '#450a0a' : '#1e1e2e';
+    const sideBg = t.side === 'BUY' ? 'badge-green' : 'badge-red';
+    const signals = t.signals || [];
+    return `
+    <div style="background:#111118;border:1px solid #1e1e2e;border-radius:12px;margin-bottom:12px;overflow:hidden;">
+      <!-- Header row -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #1e1e2e;flex-wrap:wrap;gap:8px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <span class="badge ${sideBg}" style="font-size:12px;padding:3px 10px;">${t.side}</span>
+          <span style="font-weight:700;font-size:15px;">${t.asset}</span>
+          <span style="color:#6b7280;font-size:12px;">${t.time}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:16px;">
+          <span style="font-size:12px;color:#6b7280;">Size: <strong style="color:#e2e8f0;">$${(t.sizeUsd||0).toFixed(2)}</strong></span>
+          <span style="font-size:12px;color:#6b7280;">Entry: <strong style="color:#e2e8f0;">$${(t.entry||0).toFixed(2)}</strong></span>
+          ${t.exit ? `<span style="font-size:12px;color:#6b7280;">Exit: <strong style="color:#e2e8f0;">$${t.exit.toFixed(2)}</strong></span>` : ''}
+          ${t.pnl !== null && t.pnl !== undefined ? `<span style="background:${pnlBg};color:${pnlColor};padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;">${t.pnl >= 0 ? '+' : ''}$${t.pnl.toFixed(2)}</span>` : ''}
+        </div>
+      </div>
+      <!-- Strategy reasoning -->
+      <div style="padding:14px 18px;">
+        <div style="font-size:11px;color:#6366f1;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;font-weight:600;">Strategy Reasoning</div>
+        <div style="font-size:13px;color:#d1d5db;line-height:1.7;">${t.reason || '—'}</div>
+        ${t.strategy_context ? `
+        <div style="margin-top:12px;background:#0f1629;border:1px solid #1e3a5f;border-radius:8px;padding:12px;">
+          <div style="font-size:11px;color:#3b82f6;margin-bottom:6px;font-weight:600;">MARKET CONTEXT AT ENTRY</div>
+          <div style="font-size:12px;color:#93c5fd;line-height:1.7;">${t.strategy_context}</div>
+        </div>` : ''}
+        ${signals.length > 0 ? `
+        <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;">
+          ${signals.map(s => `<span style="background:#1e1e2e;color:#94a3b8;padding:2px 8px;border-radius:6px;font-size:11px;">${s}</span>`).join('')}
+        </div>` : ''}
+      </div>
+    </div>`;
   }).join('');
 }
 

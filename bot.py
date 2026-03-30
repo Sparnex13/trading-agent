@@ -237,6 +237,15 @@ def run_hourly():
     prices = get_crypto_prices()
     eth_price = prices.get("ETH", {}).get("price") or get_price("ETH-USD")
     btc_price = prices.get("BTC", {}).get("price", 0)
+    eth = prices.get("ETH", {})
+
+    # Get Fear & Greed for context
+    fear_greed_val = "N/A"
+    try:
+        r = requests.get("https://api.alternative.me/fng/?limit=1", timeout=5)
+        fear_greed_val = r.json()["data"][0]["value"] + "/100"
+    except:
+        pass
 
     # Update peak prices for trailing stops
     if "ETH" in state["positions"] and eth_price:
@@ -280,7 +289,12 @@ def run_hourly():
                 state["trades"].append({
                     "time": ts, "asset": "ETH", "side": "SELL",
                     "qty": pos["qty"], "entry": pos["entry"], "exit": exit_price,
-                    "pnl": realized_pnl, "reason": reason
+                    "sizeUsd": pos.get("size_usd", 0),
+                    "pnl": realized_pnl, "reason": reason,
+                    "strategy_context": f"ETH at ${eth_price:.2f}. Entry was ${pos['entry']:.2f}. " +
+                        f"Stop-loss was ${pos['stop_loss']:.2f}, target was ${pos['target']:.2f}. " +
+                        f"Held for {round((time.time() - pos.get('entry_time', time.time())) / 3600, 1)}h.",
+                    "signals": [f"ETH {eth.get('change_1h',0):+.2f}% 1h", f"Fear&Greed: {fear_greed_val}", f"BTC ${btc_price:,.0f}"]
                 })
                 del state["positions"]["ETH"]
                 actions_taken.append(f"✅ Sold ETH @ ${exit_price:.2f} | P&L: ${realized_pnl:+.2f}")
@@ -307,12 +321,25 @@ def run_hourly():
                 qty = float(order.get("filled_size", 0))
                 stop = entry_price * 0.90
                 target = entry_price * 1.08
+                eth_1h = prices.get("ETH", {}).get("change_1h", 0) or 0
                 state["positions"]["ETH"] = {
                     "qty": qty, "entry": entry_price,
                     "stop_loss": stop, "target": target,
                     "size_usd": trade_usd, "peak_price": entry_price,
-                    "order_id": order_id
+                    "order_id": order_id, "entry_time": time.time()
                 }
+                # Log as a trade entry with full context
+                state["trades"].append({
+                    "time": ts, "asset": "ETH", "side": "BUY",
+                    "qty": qty, "entry": entry_price, "exit": None,
+                    "sizeUsd": trade_usd, "pnl": None,
+                    "reason": signal_reason,
+                    "strategy_context": f"ETH at ${entry_price:.2f} | 1h momentum: {eth_1h:+.2f}% | "
+                        f"Stop: ${stop:.2f} (-10%) | Target: ${target:.2f} (+8%) | "
+                        f"Capital deployed: ${trade_usd:.2f} of ${total:.2f} portfolio ({trade_usd/total*100:.0f}%)",
+                    "signals": [f"1h: {eth_1h:+.2f}%", f"24h: {prices.get('ETH',{}).get('change_24h',0):+.2f}%",
+                                f"BTC ${btc_price:,.0f}", f"Vol: ${prices.get('ETH',{}).get('volume',0)/1e9:.1f}B"]
+                })
                 actions_taken.append(f"✅ Bought {qty:.6f} ETH @ ${entry_price:.2f}")
                 report_lines.append(f"✅ **BOUGHT** {qty:.6f} ETH @ ${entry_price:.2f} | Stop: ${stop:.2f} | Target: ${target:.2f}")
         else:
