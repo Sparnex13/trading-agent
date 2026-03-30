@@ -22,6 +22,14 @@ START_DATE = "2026-03-29"
 TARGET = 1000.00
 
 STATE_FILE = os.path.join(os.path.dirname(__file__), "state.json")
+STRATEGY_FILE = os.path.join(os.path.dirname(__file__), "strategy.json")
+
+def load_strategy():
+    if os.path.exists(STRATEGY_FILE):
+        with open(STRATEGY_FILE) as f:
+            return json.load(f)
+    return {"take_profit_pct": 8.0, "stop_loss_pct": 10.0, "momentum_threshold_1h": 0.3,
+            "max_position_pct": 80.0, "preferred_asset": "ETH-USD"}
 
 # Position tracking (loaded from state file)
 DEFAULT_STATE = {
@@ -168,22 +176,30 @@ def get_trending_news():
 
 # ── Trading logic ─────────────────────────────────────────────────────────────
 def should_sell_eth(state, current_price):
-    """Check if we should exit ETH position"""
+    """Check if we should exit ETH position — uses live strategy params"""
     pos = state["positions"].get("ETH")
     if not pos:
         return False, None
 
+    strategy = load_strategy()
     entry = pos["entry"]
-    stop = pos["stop_loss"]
-    target = pos["target"]
     pnl_pct = (current_price - entry) / entry * 100
 
-    if current_price <= stop:
-        return True, f"STOP-LOSS HIT — price ${current_price:.2f} <= stop ${stop:.2f} ({pnl_pct:.1f}%)"
-    if current_price >= target:
-        return True, f"TAKE-PROFIT HIT — price ${current_price:.2f} >= target ${target:.2f} (+{pnl_pct:.1f}%)"
-    # Trailing: if up >5% and starts reversing >2% from peak, sell
-    if pnl_pct >= 5 and pos.get("peak_price", 0) > 0:
+    # Recalculate stop/target from live strategy (may have changed since entry)
+    dynamic_stop = entry * (1 - strategy["stop_loss_pct"] / 100)
+    dynamic_target = entry * (1 + strategy["take_profit_pct"] / 100)
+
+    # Update position's stop/target to reflect current strategy
+    pos["stop_loss"] = dynamic_stop
+    pos["target"] = dynamic_target
+
+    if current_price <= dynamic_stop:
+        return True, f"STOP-LOSS HIT — price ${current_price:.2f} <= stop ${dynamic_stop:.2f} ({pnl_pct:.1f}%) [strategy: -{strategy['stop_loss_pct']}%]"
+    if current_price >= dynamic_target:
+        return True, f"TAKE-PROFIT HIT — price ${current_price:.2f} >= target ${dynamic_target:.2f} (+{pnl_pct:.1f}%) [strategy: +{strategy['take_profit_pct']}%]"
+    # Trailing: if up > half of take-profit and starts reversing >2% from peak, sell
+    half_tp = strategy["take_profit_pct"] / 2
+    if pnl_pct >= half_tp and pos.get("peak_price", 0) > 0:
         peak = pos.get("peak_price", current_price)
         drawdown_from_peak = (current_price - peak) / peak * 100
         if drawdown_from_peak < -2:
@@ -192,31 +208,42 @@ def should_sell_eth(state, current_price):
     return False, None
 
 def decide_next_trade(state, cash, prices, total_balance):
-    """Decide whether to enter a new position"""
+    """Decide whether to enter a new position — uses live strategy params"""
+    strategy = load_strategy()
+
     if total_balance < 5:
         return None, "Insufficient funds"
 
-    # Don't trade if already heavily invested
-    eth_pos = state["positions"].get("ETH")
     invested_pct = (total_balance - cash) / total_balance * 100 if total_balance > 0 else 0
-    if invested_pct > 85:
-        return None, "Already >85% invested"
+    max_invested = strategy["max_position_pct"]
+    if invested_pct > max_invested:
+        return None, f"Already >{max_invested:.0f}% invested ({invested_pct:.0f}%)"
 
-    if cash < 5:
-        return None, "Not enough cash buffer"
+    if cash < 3:
+        return None, "Not enough cash buffer (<$3)"
 
-    eth = prices.get("ETH", {})
-    btc = prices.get("BTC", {})
+    preferred = strategy.get("preferred_asset", "ETH-USD")
+    symbol = preferred.replace("-USD", "")
+    asset_data = prices.get(symbol, {})
+    eth_data = prices.get("ETH", {})
 
-    # Prefer ETH if 1h momentum is positive and 24h change isn't too negative
-    if eth:
-        change_1h = eth.get("change_1h", 0) or 0
-        change_24h = eth.get("change_24h", 0) or 0
-        if change_1h > 0.3 and change_24h > -5:
-            trade_usd = min(cash * 0.8, total_balance * 0.2)  # max 20% of portfolio
-            return ("ETH-USD", trade_usd), f"ETH momentum: +{change_1h:.2f}% 1h, {change_24h:.2f}% 24h"
+    change_1h = (asset_data.get("price_change_percentage_1h_in_currency") or
+                 asset_data.get("change_1h") or 0)
+    change_24h = (asset_data.get("price_change_percentage_24h") or
+                  asset_data.get("change_24h") or 0)
+    threshold = strategy["momentum_threshold_1h"]
 
-    return None, "No strong signal — holding cash"
+    if change_1h > threshold and change_24h > -8:
+        trade_usd = min(cash * 0.9, total_balance * (max_invested / 100) - (total_balance - cash))
+        trade_usd = max(2.0, round(trade_usd, 2))
+        if trade_usd > cash:
+            trade_usd = round(cash * 0.9, 2)
+        return (preferred, trade_usd), (
+            f"{symbol} momentum: {change_1h:+.2f}% 1h, {change_24h:+.2f}% 24h "
+            f"(threshold: {threshold}%) | regime: {strategy.get('market_regime','?')}"
+        )
+
+    return None, f"No signal — {symbol} 1h={change_1h:+.2f}% below threshold {threshold}%"
 
 # ── Main hourly run ───────────────────────────────────────────────────────────
 def run_hourly():
