@@ -290,20 +290,22 @@ function updateStats() {
 
 function renderPositions() {
   const tbody = document.getElementById('positionsBody');
-  if (state.positions.length === 0) {
+  const posEntries = Object.entries(state.positions || {});
+  if (posEntries.length === 0) {
     tbody.innerHTML = '<tr><td colspan="6" style="color:#4b5563;text-align:center;padding:20px;">No open positions</td></tr>';
     return;
   }
-  tbody.innerHTML = state.positions.map(p => {
-    const pnl = (p.current - p.entry) / p.entry * p.sizeUsd;
-    const pnlPct = ((p.current - p.entry) / p.entry * 100).toFixed(2);
+  tbody.innerHTML = posEntries.map(([asset, p]) => {
+    const current = p.current_price || p.entry;
+    const pnl = (current - p.entry) / p.entry * (p.size_usd || p.sizeUsd || 0);
+    const pnlPct = ((current - p.entry) / p.entry * 100).toFixed(2);
     return `<tr>
-      <td style="font-weight:600;">${p.asset}</td>
-      <td>$${p.sizeUsd.toFixed(2)}</td>
+      <td style="font-weight:600;">${asset}</td>
+      <td>$${(p.size_usd || p.sizeUsd || 0).toFixed(2)}</td>
       <td>$${p.entry.toFixed(2)}</td>
-      <td>$${p.current.toFixed(2)}</td>
+      <td>$${current.toFixed(2)}</td>
       <td class="${pnl >= 0 ? 'up' : 'down'}">${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)} (${pnlPct}%)</td>
-      <td style="color:#f87171;">$${p.stopLoss.toFixed(2)}</td>
+      <td style="color:#f87171;">$${(p.stop_loss||p.stopLoss||0).toFixed(2)}</td>
     </tr>`;
   }).join('');
 }
@@ -434,15 +436,15 @@ function toggleLog() {
 }
 
 function renderActivityLog() {
-  const log = state.activityLog || [];
+  const log = (state && state.activityLog) ? state.activityLog : [];
   const tbody = document.getElementById('activityLogBody');
   if (!tbody) return;
 
   const count = document.getElementById('cycleCount');
-  if (count) count.textContent = `${log.length} cycles recorded`;
+  if (count) count.textContent = log.length > 0 ? `${log.length} cycles recorded` : '';
 
   if (log.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" style="color:#4b5563;text-align:center;padding:16px;">No cycles yet</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="color:#4b5563;text-align:center;padding:16px;">Waiting for next cycle...</td></tr>';
     return;
   }
 
@@ -588,7 +590,12 @@ function applyState(data) {
   if (data.trades) state.trades = data.trades;
   if (data.positions) state.positions = data.positions;
   if (data.cash !== undefined) state.cashBalance = data.cash;
-  if (data.activity_log) state.activityLog = data.activity_log;
+  if (data.activity_log && data.activity_log.length > 0) {
+    state.activityLog = data.activity_log;
+    // Update cycle count immediately
+    const cc = document.getElementById('cycleCount');
+    if (cc) cc.textContent = `${data.activity_log.length} cycles recorded`;
+  }
 
   // Today's P&L: sum of today's realized trades
   const today = new Date().toISOString().slice(0,10);
@@ -598,9 +605,16 @@ function applyState(data) {
 }
 
 async function fetchLiveState() {
+  const lastUpdateEl = document.getElementById('lastUpdate');
   try {
-    const resp = await fetch(STATE_URL, { cache: "no-store" });
-    if (!resp.ok) return;
+    const resp = await fetch(STATE_URL, {
+      cache: "no-store",
+      mode: "cors"
+    });
+    if (!resp.ok) {
+      lastUpdateEl.textContent = `Fetch error: HTTP ${resp.status}`;
+      return;
+    }
     const data = await resp.json();
     applyState(data);
     updateStats();
@@ -609,24 +623,18 @@ async function fetchLiveState() {
     renderTrades();
     renderActivityLog();
     drawChart();
-    document.getElementById('lastUpdate').textContent = 'Live — updated ' + new Date().toLocaleTimeString();
+    lastUpdateEl.textContent = 'Live — updated ' + new Date().toLocaleTimeString();
   } catch(e) {
-    console.warn("Could not fetch live state:", e);
-    document.getElementById('lastUpdate').textContent = 'Offline — using cached data';
+    lastUpdateEl.textContent = 'Fetch failed: ' + e.message;
+    console.error("fetchLiveState error:", e);
   }
 }
 
-// Init with static seed, then fetch live
+// Static seed (shown until live data loads)
 state.positions = {
   "ETH": { qty: 0.018013, entry: 2018.00, stop_loss: 1816.20, target: 2135.45, current_price: 2028.00, size_usd: 36.38 }
 };
 state.cashBalance = 1.70;
-
-updateStats();
-renderHoldings();
-renderPositions();
-renderTrades();
-renderActivityLog();
 drawChart();
 window.addEventListener('resize', drawChart);
 
@@ -640,7 +648,8 @@ function updateCountdown() {
 setInterval(updateCountdown, 1000);
 updateCountdown();
 
-// Fetch live data immediately then every 60s
+// Fetch live — renders everything once data arrives
+// The initial static render is skipped so live data isn't overwritten by empty state
 fetchLiveState();
 setInterval(() => { nextRefresh = Date.now() + REFRESH_INTERVAL; fetchLiveState(); }, REFRESH_INTERVAL);
 </script>
