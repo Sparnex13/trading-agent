@@ -121,22 +121,91 @@ def save_state(state):
 
 # ── Market research ───────────────────────────────────────────────────────────
 def get_crypto_prices():
+    """Fetch prices with 1h/24h changes. Primary: CoinGecko markets. Fallback: Coinbase prices."""
+    # Primary: CoinGecko markets endpoint (has 1h data)
+    try:
+        r = requests.get(
+            "https://api.coingecko.com/api/v3/coins/markets"
+            "?vs_currency=usd&ids=bitcoin,ethereum,solana,ripple"
+            "&price_change_percentage=1h,24h",
+            timeout=8
+        )
+        if r.status_code == 200:
+            raw = r.json()
+            mapping = {"bitcoin": "BTC", "ethereum": "ETH", "solana": "SOL", "ripple": "XRP"}
+            result = {}
+            for d in raw:
+                cid = d.get("id", "")
+                sym = mapping.get(cid)
+                if sym:
+                    result[sym] = {
+                        "price": d.get("current_price", 0),
+                        "change_1h": d.get("price_change_percentage_1h_in_currency", 0) or 0,
+                        "change_24h": d.get("price_change_percentage_24h", 0) or 0,
+                        "volume": d.get("total_volume", 0),
+                    }
+            if result:
+                return result
+    except Exception:
+        pass
+
+    # Fallback: CoinGecko simple price (no 1h, but better than nothing)
     try:
         r = requests.get(
             "https://api.coingecko.com/api/v3/simple/price"
             "?ids=bitcoin,ethereum,solana,ripple"
             "&vs_currencies=usd&include_24hr_change=true",
-            timeout=5
+            timeout=8
         )
-        raw = r.json()
-        mapping = {"bitcoin": "BTC", "ethereum": "ETH", "solana": "SOL", "ripple": "XRP"}
-        return {mapping[k]: {
-            "price": v.get("usd", 0),
-            "change_24h": v.get("usd_24h_change", 0),
-            "change_1h": 0,
-        } for k, v in raw.items() if k in mapping}
+        if r.status_code == 200:
+            raw = r.json()
+            mapping = {"bitcoin": "BTC", "ethereum": "ETH", "solana": "SOL", "ripple": "XRP"}
+            return {mapping[k]: {
+                "price": v.get("usd", 0),
+                "change_24h": v.get("usd_24h_change", 0),
+                "change_1h": 0,
+            } for k, v in raw.items() if k in mapping}
     except Exception:
-        return {}
+        pass
+
+    # Fallback 2: CryptoCompare (free, no key, has hourly OHLCV)
+    try:
+        syms = "ETH,BTC,SOL,XRP"
+        r = requests.get(
+            f"https://min-api.cryptocompare.com/data/pricemultifull?fsyms={syms}&tsyms=USD",
+            timeout=8
+        )
+        if r.status_code == 200:
+            raw = r.json().get("RAW", {})
+            result = {}
+            for sym in ["ETH", "BTC", "SOL", "XRP"]:
+                d = raw.get(sym, {}).get("USD", {})
+                if d:
+                    price = d.get("PRICE", 0)
+                    open_day = d.get("OPENDAY", price)
+                    open_hour = d.get("OPENHOUR", price)
+                    change_24h = ((price - open_day) / open_day * 100) if open_day else 0
+                    change_1h = ((price - open_hour) / open_hour * 100) if open_hour else 0
+                    result[sym] = {
+                        "price": price,
+                        "change_1h": change_1h,
+                        "change_24h": change_24h,
+                        "volume": d.get("TOTALVOLUME24HTO", 0),
+                    }
+            if result:
+                return result
+    except Exception:
+        pass
+
+    # Last resort: Coinbase prices only (no % change)
+    result = {}
+    for sym, product in [("ETH", "ETH-USD"), ("BTC", "BTC-USD"), ("SOL", "SOL-USD"), ("XRP", "XRP-USD")]:
+        try:
+            p = get_price(product)
+            result[sym] = {"price": p, "change_1h": 0, "change_24h": 0, "volume": 0}
+        except Exception:
+            pass
+    return result
 
 # ── XRP Scalp logic ───────────────────────────────────────────────────────────
 # Each run we compare current price to last-seen price to detect micro-moves.
@@ -340,82 +409,92 @@ def should_sell_eth(state, current_price):
 
     return False, None
 
+def scan_sniper_targets(prices):
+    """
+    SNIPER MODE: Scan all tracked assets and return ranked list of momentum signals.
+    Returns list of (product_id, symbol, change_1h, change_24h, price) sorted by 1h momentum desc.
+    """
+    candidates = []
+    asset_map = {
+        "ETH": "ETH-USD",
+        "SOL": "SOL-USD",
+        "XRP": "XRP-USD",
+        "BTC": "BTC-USD",
+    }
+    for sym, product_id in asset_map.items():
+        data = prices.get(sym, {})
+        price = data.get("price", 0)
+        change_1h = data.get("change_1h") or 0
+        change_24h = data.get("change_24h") or 0
+        if price > 0:
+            candidates.append((product_id, sym, change_1h, change_24h, price))
+    # Sort by 1h momentum descending
+    candidates.sort(key=lambda x: x[2], reverse=True)
+    return candidates
+
 def decide_next_trade(state, cash, prices, total_balance):
-    """Decide whether to enter a new position — uses live strategy params + dip-buy logic"""
+    """
+    SNIPER MODE: Fire on any asset showing momentum >= threshold.
+    No dip-wait. Deploy 90% of cash on best signal.
+    Log every considered signal as missed if we can't act.
+    """
     strategy = load_strategy()
+    ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
     if total_balance < 5:
         return None, "Insufficient funds"
 
-    invested_pct = (total_balance - cash) / total_balance * 100 if total_balance > 0 else 0
-    max_invested = strategy["max_position_pct"]
-    if invested_pct > max_invested:
-        return None, f"Already >{max_invested:.0f}% invested ({invested_pct:.0f}%)"
-
     if cash < 3:
         return None, "Not enough cash buffer (<$3)"
 
-    preferred = strategy.get("preferred_asset", "ETH-USD")
-    symbol = preferred.replace("-USD", "")
-    asset_data = prices.get(symbol, {})
-    current_price = asset_data.get("price", 0)
-
-    change_1h = (asset_data.get("price_change_percentage_1h_in_currency") or
-                 asset_data.get("change_1h") or 0)
-    change_24h = (asset_data.get("price_change_percentage_24h") or
-                  asset_data.get("change_24h") or 0)
     threshold = strategy["momentum_threshold_1h"]
+    candidates = scan_sniper_targets(prices)
 
-    # ── Dip-buy logic ──────────────────────────────────────────────────────
-    # If we just sold (last_sell_price is set), wait for a 1.5% pullback before re-entering
-    last_sell = state.get("last_sell_price", {}).get(symbol, 0)
-    dip_threshold_pct = 1.5
-    if last_sell > 0 and current_price > 0:
-        drop_from_sell = (last_sell - current_price) / last_sell * 100
-        if drop_from_sell < dip_threshold_pct:
-            # Log as missed if price is moving upward while we wait
-            if change_1h > 0.5:
-                state.setdefault("missed_opportunities", []).append({
-                    "time": ts if 'ts' in dir() else "unknown",
-                    "asset": symbol,
-                    "reason": f"Waiting for dip (sold @ ${last_sell:.2f}, only -{drop_from_sell:.2f}% pullback so far)",
-                    "signal": f"{change_1h:+.2f}% 1h — price rising while waiting",
-                    "price": current_price,
-                    "est_gain_pct": change_1h,
-                    "est_gain_usd": round(cash * change_1h / 100, 3)
-                })
-            return None, (
-                f"Waiting for dip: sold @ ${last_sell:.2f}, current ${current_price:.2f} "
-                f"(down {drop_from_sell:.2f}%, need -{dip_threshold_pct}% dip to re-enter)"
-            )
+    best_signal = None
+    best_reason = None
+    all_considered = []
+
+    for product_id, sym, change_1h, change_24h, price in candidates:
+        signal_strength = change_1h
+        all_considered.append(f"{sym}: {change_1h:+.2f}% 1h")
+
+        # Skip if 24h is extremely bearish (>10% down) — likely a dump not a bounce
+        if change_24h < -10:
+            state.setdefault("missed_opportunities", []).append({
+                "time": ts, "asset": sym,
+                "reason": f"24h too bearish ({change_24h:.1f}%) — skipping despite {change_1h:+.2f}% 1h",
+                "signal": f"{change_1h:+.2f}% 1h | {change_24h:+.2f}% 24h",
+                "price": price,
+                "est_gain_pct": strategy["take_profit_pct"],
+                "est_gain_usd": round(cash * 0.9 * strategy["take_profit_pct"] / 100, 2)
+            })
+            continue
+
+        if signal_strength >= threshold:
+            if best_signal is None:
+                best_signal = (product_id, sym, change_1h, change_24h, price)
+                best_reason = f"🎯 SNIPER: {sym} momentum {change_1h:+.2f}% 1h | {change_24h:+.2f}% 24h | Scanned: {', '.join(all_considered)}"
         else:
-            # Dip achieved — clear the sell price and enter
-            state["last_sell_price"][symbol] = 0
+            # Signal exists but below threshold — log as near-miss
+            if signal_strength > 0:
+                state.setdefault("missed_opportunities", []).append({
+                    "time": ts, "asset": sym,
+                    "reason": f"Below threshold ({change_1h:+.2f}% < {threshold}% needed)",
+                    "signal": f"{change_1h:+.2f}% 1h | {change_24h:+.2f}% 24h",
+                    "price": price,
+                    "est_gain_pct": strategy["take_profit_pct"],
+                    "est_gain_usd": round(cash * 0.9 * strategy["take_profit_pct"] / 100, 2)
+                })
 
-    # Standard momentum entry
-    if change_1h > threshold and change_24h > -8:
-        trade_usd = min(cash * 0.9, total_balance * (max_invested / 100) - (total_balance - cash))
-        trade_usd = max(2.0, round(trade_usd, 2))
-        if trade_usd > cash:
-            trade_usd = round(cash * 0.9, 2)
-        reason = f"{symbol} momentum: {change_1h:+.2f}% 1h, {change_24h:+.2f}% 24h"
-        if last_sell > 0:
-            reason += f" | dip re-entry (sold @ ${last_sell:.2f})"
-        return (preferred, trade_usd), reason
+    if best_signal:
+        product_id, sym, change_1h, change_24h, price = best_signal
+        # Deploy 90% of available cash
+        trade_usd = round(cash * 0.90, 2)
+        trade_usd = max(2.0, trade_usd)
+        return (product_id, trade_usd), best_reason
 
-    # Log missed opportunity if there was momentum but we couldn't act
-    if change_1h > threshold and cash < 3:
-        state.setdefault("missed_opportunities", []).append({
-            "time": ts if 'ts' in dir() else "unknown",
-            "asset": symbol,
-            "reason": f"Not enough cash (${cash:.2f})",
-            "signal": f"{change_1h:+.2f}% 1h momentum",
-            "price": current_price,
-            "est_gain_pct": strategy["take_profit_pct"],
-            "est_gain_usd": round(cash * strategy["take_profit_pct"] / 100, 3) if cash > 0 else 0
-        })
-
-    return None, f"No signal — {symbol} 1h={change_1h:+.2f}% below threshold {threshold}%"
+    best_str = f"{candidates[0][1]} {candidates[0][2]:+.2f}%" if candidates else "no data"
+    return None, f"No sniper signal — best 1h mover: {best_str} (need >{threshold}%) | All: {', '.join(all_considered) or 'none'}"
 
 # ── Main hourly run ───────────────────────────────────────────────────────────
 def run_hourly():
@@ -473,61 +552,90 @@ def run_hourly():
 
     actions_taken = []
 
-    # ── Check exit conditions ──
-    if "ETH" in state["positions"] and eth_price:
-        should_exit, reason = should_sell_eth(state, eth_price)
-        pos = state["positions"]["ETH"]
-        unrealized_pnl = (eth_price - pos["entry"]) * pos["qty"]
-        unrealized_pct = (eth_price - pos["entry"]) / pos["entry"] * 100
+    # ── Check exit conditions (all open positions) ──
+    positions_to_close = []
+    for sym, pos in list(state["positions"].items()):
+        product_id = f"{sym}-USD"
+        current_price = prices.get(sym, {}).get("price") or get_price(product_id)
+        if not current_price:
+            continue
 
-        report_lines.append(f"**Open Position:** ETH {pos['qty']:.6f} @ ${pos['entry']:.2f} entry")
-        report_lines.append(f"  Current: ${eth_price:.2f} | P&L: {'+' if unrealized_pnl >= 0 else ''}${unrealized_pnl:.2f} ({'+' if unrealized_pct >= 0 else ''}{unrealized_pct:.1f}%)")
-        report_lines.append(f"  Stop: ${pos['stop_loss']:.2f} | Target: ${pos['target']:.2f}")
+        # Update peak for trailing stop
+        pos["peak_price"] = max(pos.get("peak_price", current_price), current_price)
+        pos["current_price"] = current_price
+
+        entry = pos["entry"]
+        pnl_pct = (current_price - entry) / entry * 100
+        unrealized_pnl = (current_price - entry) * pos["qty"]
+        strategy = load_strategy()
+        stop = entry * (1 - strategy["stop_loss_pct"] / 100)
+        target = entry * (1 + strategy["take_profit_pct"] / 100)
+        pos["stop_loss"] = stop
+        pos["target"] = target
+
+        report_lines.append(f"**Open Position:** {sym} {pos['qty']:.6f} @ ${entry:.4f} entry")
+        report_lines.append(f"  Current: ${current_price:.4f} | P&L: {'+' if unrealized_pnl >= 0 else ''}${unrealized_pnl:.3f} ({pnl_pct:+.2f}%)")
+        report_lines.append(f"  Stop: ${stop:.4f} | Target: ${target:.4f}")
+
+        should_exit = False
+        exit_reason = ""
+        if current_price <= stop:
+            should_exit = True
+            exit_reason = f"STOP-LOSS HIT — ${current_price:.4f} <= ${stop:.4f} ({pnl_pct:.1f}%)"
+        elif current_price >= target:
+            should_exit = True
+            exit_reason = f"TAKE-PROFIT HIT — ${current_price:.4f} >= ${target:.4f} (+{pnl_pct:.1f}%)"
+        elif pnl_pct >= strategy["take_profit_pct"] / 2 and pos.get("peak_price", 0) > 0:
+            drawdown = (current_price - pos["peak_price"]) / pos["peak_price"] * 100
+            if drawdown < -2:
+                should_exit = True
+                exit_reason = f"TRAILING EXIT — {pnl_pct:.1f}% up, reversing {drawdown:.1f}% from peak"
 
         if should_exit:
-            # SELL
-            report_lines.append(f"  🚨 **EXIT TRIGGERED:** {reason}")
-            eth_qty = live_positions.get("ETH", {}).get("qty", pos["qty"])
-            status, result = market_sell("ETH-USD", f"{eth_qty:.6f}")
-            if result.get("success"):
-                order_id = result["success_response"]["order_id"]
-                time.sleep(1)
-                order = get_order(order_id)
-                exit_price = float(order.get("average_filled_price", eth_price))
-                realized_pnl = (exit_price - pos["entry"]) * pos["qty"]
-                state["trades"].append({
-                    "time": ts, "asset": "ETH", "side": "SELL",
-                    "qty": pos["qty"], "entry": pos["entry"], "exit": exit_price,
-                    "sizeUsd": pos.get("size_usd", 0),
-                    "pnl": realized_pnl, "reason": reason,
-                    "strategy_context": f"ETH at ${eth_price:.2f}. Entry was ${pos['entry']:.2f}. " +
-                        f"Stop-loss was ${pos['stop_loss']:.2f}, target was ${pos['target']:.2f}. " +
-                        f"Held for {round((time.time() - pos.get('entry_time', time.time())) / 3600, 1)}h.",
-                    "signals": [f"ETH {eth.get('change_1h',0):+.2f}% 1h", f"Fear&Greed: {fear_greed_val}", f"BTC ${btc_price:,.0f}"]
-                })
-                del state["positions"]["ETH"]
-                # Store sell price for dip-buy logic
-                state.setdefault("last_sell_price", {})["ETH"] = exit_price
-                actions_taken.append(f"✅ Sold ETH @ ${exit_price:.2f} | P&L: ${realized_pnl:+.2f} | Waiting for -1.5% dip to re-enter")
-                report_lines.append(f"  ✅ **SOLD** @ ${exit_price:.2f} | Realized P&L: ${realized_pnl:+.2f}")
+            positions_to_close.append((sym, product_id, pos, current_price, exit_reason))
+
+    for sym, product_id, pos, current_price, exit_reason in positions_to_close:
+        report_lines.append(f"  🚨 **EXIT:** {exit_reason}")
+        live_qty = live_positions.get(sym, {}).get("qty", pos["qty"])
+        status, result = market_sell(product_id, f"{live_qty:.8f}")
+        if result.get("success"):
+            order_id = result["success_response"]["order_id"]
+            time.sleep(1)
+            order = get_order(order_id)
+            exit_price = float(order.get("average_filled_price", current_price))
+            realized_pnl = (exit_price - pos["entry"]) * pos["qty"]
+            held_h = round((time.time() - pos.get("entry_time", time.time())) / 3600, 1)
+            state["trades"].append({
+                "time": ts, "asset": sym, "side": "SELL",
+                "qty": pos["qty"], "entry": pos["entry"], "exit": exit_price,
+                "sizeUsd": pos.get("size_usd", 0),
+                "pnl": realized_pnl, "reason": exit_reason,
+                "strategy_context": f"SNIPER exit: {sym} @ ${exit_price:.4f} | Entry ${pos['entry']:.4f} | Held {held_h}h | P&L ${realized_pnl:+.3f}",
+                "signals": [f"F&G: {fear_greed_val}", f"BTC ${btc_price:,.0f}"]
+            })
+            del state["positions"][sym]
+            actions_taken.append(f"✅ Sold {sym} @ ${exit_price:.4f} | P&L: ${realized_pnl:+.3f} | Back to cash — scanning next sniper target")
+            report_lines.append(f"  ✅ **SOLD** @ ${exit_price:.4f} | Realized P&L: ${realized_pnl:+.3f}")
 
     # ── Track missed opportunities ──
     # Did we have a signal but couldn't act due to being invested?
-    if "ETH" in state["positions"]:
-        # We're in a position — check if other assets had strong moves we missed
+    if state["positions"]:
+        held = list(state["positions"].keys())
         for sym, data in prices.items():
-            if sym == "ETH":
+            if sym in held:
                 continue
-            move = data.get("change_24h", 0) or 0
-            if abs(move) > 3:  # significant 24h move
+            move_1h = data.get("change_1h", 0) or 0
+            move_24h = data.get("change_24h", 0) or 0
+            strategy = load_strategy()
+            if move_1h > strategy["momentum_threshold_1h"]:
                 state.setdefault("missed_opportunities", []).append({
                     "time": ts,
                     "asset": sym,
-                    "reason": "Fully invested in ETH",
-                    "signal": f"{move:+.2f}% 24h move",
+                    "reason": f"Fully invested in {', '.join(held)}",
+                    "signal": f"{move_1h:+.2f}% 1h | {move_24h:+.2f}% 24h",
                     "price": data.get("price", 0),
-                    "est_gain_pct": abs(move),
-                    "est_gain_usd": round(38 * abs(move) / 100, 2)  # what $38 would have made
+                    "est_gain_pct": strategy["take_profit_pct"],
+                    "est_gain_usd": round(total * 0.9 * strategy["take_profit_pct"] / 100, 2)
                 })
 
     # ── XRP Scalp Layer ──
@@ -552,45 +660,50 @@ def run_hourly():
         total, cash, live_positions = get_portfolio()
 
     # ── Check entry conditions ──
-    if "ETH" not in state["positions"]:
+    if not state["positions"]:
         trade_signal, signal_reason = decide_next_trade(state, cash, prices, total)
         if trade_signal:
             product_id, trade_usd = trade_signal
+            sym = product_id.replace("-USD", "")
+            current_asset_price = prices.get(sym, {}).get("price") or get_price(product_id)
             report_lines.append(f"")
-            report_lines.append(f"📈 **ENTRY SIGNAL:** {signal_reason}")
+            report_lines.append(f"🎯 **SNIPER ENTRY:** {signal_reason}")
             status, result = market_buy(product_id, trade_usd)
             if result.get("success"):
                 order_id = result["success_response"]["order_id"]
                 time.sleep(1)
                 order = get_order(order_id)
-                entry_price = float(order.get("average_filled_price", eth_price))
+                entry_price = float(order.get("average_filled_price", current_asset_price))
                 qty = float(order.get("filled_size", 0))
-                stop = entry_price * 0.90
-                target = entry_price * 1.08
-                eth_1h = prices.get("ETH", {}).get("change_1h", 0) or 0
-                state["positions"]["ETH"] = {
+                strategy = load_strategy()
+                stop = entry_price * (1 - strategy["stop_loss_pct"] / 100)
+                target = entry_price * (1 + strategy["take_profit_pct"] / 100)
+                asset_1h = prices.get(sym, {}).get("change_1h", 0) or 0
+                asset_24h = prices.get(sym, {}).get("change_24h", 0) or 0
+                state["positions"][sym] = {
                     "qty": qty, "entry": entry_price,
                     "stop_loss": stop, "target": target,
                     "size_usd": trade_usd, "peak_price": entry_price,
                     "order_id": order_id, "entry_time": time.time()
                 }
-                # Log as a trade entry with full context
                 state["trades"].append({
-                    "time": ts, "asset": "ETH", "side": "BUY",
+                    "time": ts, "asset": sym, "side": "BUY",
                     "qty": qty, "entry": entry_price, "exit": None,
                     "sizeUsd": trade_usd, "pnl": None,
                     "reason": signal_reason,
-                    "strategy_context": f"ETH at ${entry_price:.2f} | 1h momentum: {eth_1h:+.2f}% | "
-                        f"Stop: ${stop:.2f} (-10%) | Target: ${target:.2f} (+8%) | "
-                        f"Capital deployed: ${trade_usd:.2f} of ${total:.2f} portfolio ({trade_usd/total*100:.0f}%)",
-                    "signals": [f"1h: {eth_1h:+.2f}%", f"24h: {prices.get('ETH',{}).get('change_24h',0):+.2f}%",
-                                f"BTC ${btc_price:,.0f}", f"Vol: ${prices.get('ETH',{}).get('volume',0)/1e9:.1f}B"]
+                    "strategy_context": f"SNIPER: {sym} @ ${entry_price:.4f} | 1h: {asset_1h:+.2f}% | "
+                        f"Stop: ${stop:.4f} (-{strategy['stop_loss_pct']}%) | Target: ${target:.4f} (+{strategy['take_profit_pct']}%) | "
+                        f"Deployed: ${trade_usd:.2f} ({trade_usd/total*100:.0f}% of portfolio)",
+                    "signals": [f"1h: {asset_1h:+.2f}%", f"24h: {asset_24h:+.2f}%",
+                                f"BTC ${btc_price:,.0f}"]
                 })
-                actions_taken.append(f"✅ Bought {qty:.6f} ETH @ ${entry_price:.2f}")
-                report_lines.append(f"✅ **BOUGHT** {qty:.6f} ETH @ ${entry_price:.2f} | Stop: ${stop:.2f} | Target: ${target:.2f}")
+                actions_taken.append(f"🎯 Sniper buy: {qty:.6f} {sym} @ ${entry_price:.4f}")
+                report_lines.append(f"✅ **BOUGHT** {qty:.6f} {sym} @ ${entry_price:.4f} | Stop: ${stop:.4f} | Target: ${target:.4f}")
+            else:
+                report_lines.append(f"⚠️ Order failed: {result}")
         else:
             report_lines.append(f"")
-            report_lines.append(f"⏸️ **No new entry:** {signal_reason}")
+            report_lines.append(f"⏸️ **No sniper signal:** {signal_reason}")
 
     # ── Update live prices on positions for dashboard ──
     if "ETH" in state["positions"] and eth_price:
