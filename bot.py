@@ -373,6 +373,17 @@ def decide_next_trade(state, cash, prices, total_balance):
     if last_sell > 0 and current_price > 0:
         drop_from_sell = (last_sell - current_price) / last_sell * 100
         if drop_from_sell < dip_threshold_pct:
+            # Log as missed if price is moving upward while we wait
+            if change_1h > 0.5:
+                state.setdefault("missed_opportunities", []).append({
+                    "time": ts if 'ts' in dir() else "unknown",
+                    "asset": symbol,
+                    "reason": f"Waiting for dip (sold @ ${last_sell:.2f}, only -{drop_from_sell:.2f}% pullback so far)",
+                    "signal": f"{change_1h:+.2f}% 1h — price rising while waiting",
+                    "price": current_price,
+                    "est_gain_pct": change_1h,
+                    "est_gain_usd": round(cash * change_1h / 100, 3)
+                })
             return None, (
                 f"Waiting for dip: sold @ ${last_sell:.2f}, current ${current_price:.2f} "
                 f"(down {drop_from_sell:.2f}%, need -{dip_threshold_pct}% dip to re-enter)"
@@ -391,6 +402,18 @@ def decide_next_trade(state, cash, prices, total_balance):
         if last_sell > 0:
             reason += f" | dip re-entry (sold @ ${last_sell:.2f})"
         return (preferred, trade_usd), reason
+
+    # Log missed opportunity if there was momentum but we couldn't act
+    if change_1h > threshold and cash < 3:
+        state.setdefault("missed_opportunities", []).append({
+            "time": ts if 'ts' in dir() else "unknown",
+            "asset": symbol,
+            "reason": f"Not enough cash (${cash:.2f})",
+            "signal": f"{change_1h:+.2f}% 1h momentum",
+            "price": current_price,
+            "est_gain_pct": strategy["take_profit_pct"],
+            "est_gain_usd": round(cash * strategy["take_profit_pct"] / 100, 3) if cash > 0 else 0
+        })
 
     return None, f"No signal — {symbol} 1h={change_1h:+.2f}% below threshold {threshold}%"
 
@@ -488,6 +511,25 @@ def run_hourly():
                 actions_taken.append(f"✅ Sold ETH @ ${exit_price:.2f} | P&L: ${realized_pnl:+.2f} | Waiting for -1.5% dip to re-enter")
                 report_lines.append(f"  ✅ **SOLD** @ ${exit_price:.2f} | Realized P&L: ${realized_pnl:+.2f}")
 
+    # ── Track missed opportunities ──
+    # Did we have a signal but couldn't act due to being invested?
+    if "ETH" in state["positions"]:
+        # We're in a position — check if other assets had strong moves we missed
+        for sym, data in prices.items():
+            if sym == "ETH":
+                continue
+            move = data.get("change_24h", 0) or 0
+            if abs(move) > 3:  # significant 24h move
+                state.setdefault("missed_opportunities", []).append({
+                    "time": ts,
+                    "asset": sym,
+                    "reason": "Fully invested in ETH",
+                    "signal": f"{move:+.2f}% 24h move",
+                    "price": data.get("price", 0),
+                    "est_gain_pct": abs(move),
+                    "est_gain_usd": round(38 * abs(move) / 100, 2)  # what $38 would have made
+                })
+
     # ── XRP Scalp Layer ──
     xrp_price = prices.get("XRP", {}).get("price", 0)
     scalp_action, scalp_msg = check_scalp(state, prices, cash, total)
@@ -556,6 +598,10 @@ def run_hourly():
 
     # ── Store cash balance ──
     state["cash"] = round(cash, 2)
+
+    # ── Cap missed opportunities log ──
+    if "missed_opportunities" in state:
+        state["missed_opportunities"] = state["missed_opportunities"][-200:]
 
     # ── Activity log entry (shown in dashboard cycle log) ──
     eth_pos = state["positions"].get("ETH", {})

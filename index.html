@@ -173,6 +173,32 @@
   </div>
 </div>
 
+<!-- Missed Opportunities -->
+<div class="section">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+    <div class="section-title" style="margin-bottom:0;">Missed Opportunities</div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <span id="missedCount" style="font-size:11px;color:#6b7280;"></span>
+      <button onclick="toggleMissed()" id="missedToggleBtn"
+        style="background:#1e1e2e;border:1px solid #374151;color:#94a3b8;padding:4px 12px;border-radius:6px;font-size:12px;cursor:pointer;">
+        Show
+      </button>
+    </div>
+  </div>
+  <div id="missedLogWrap" style="display:none;">
+    <div class="card" style="padding:0;max-height:300px;overflow-y:auto;">
+      <table>
+        <thead><tr>
+          <th>Time</th><th>Asset</th><th>Signal</th><th>Reason Missed</th><th>Est. Gain %</th><th>Est. Gain $</th>
+        </tr></thead>
+        <tbody id="missedLogBody">
+          <tr><td colspan="6" style="color:#4b5563;text-align:center;padding:16px;">No missed opportunities logged yet</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 <!-- Activity Log -->
 <div class="section">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
@@ -261,6 +287,7 @@ const state = {
   trades: [],
   positions: {},
   activityLog: [],
+  missedOpportunities: [],
   chartData: [40.00],
   chartLabels: ['Start'],
   startDate: new Date('2026-03-29'),
@@ -427,6 +454,42 @@ function drawChart() {
   labels.forEach((l, i) => { if (i % step === 0 || i === labels.length - 1) ctx.fillText(l, toX(i), h - 5); });
 }
 
+function toggleMissed() {
+  const wrap = document.getElementById('missedLogWrap');
+  const btn = document.getElementById('missedToggleBtn');
+  const hidden = wrap.style.display === 'none';
+  wrap.style.display = hidden ? 'block' : 'none';
+  btn.textContent = hidden ? 'Hide' : 'Show';
+}
+
+function renderMissedOpportunities() {
+  const log = (state && state.missedOpportunities) ? state.missedOpportunities : [];
+  const tbody = document.getElementById('missedLogBody');
+  if (!tbody) return;
+
+  const count = document.getElementById('missedCount');
+  const totalEst = log.reduce((s, e) => s + (e.est_gain_usd || 0), 0);
+  if (count) count.textContent = log.length > 0 ? `${log.length} missed · ~$${totalEst.toFixed(2)} left on table` : '';
+
+  if (log.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="color:#4b5563;text-align:center;padding:16px;">No missed opportunities logged yet</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = [...log].reverse().map(e => {
+    const timeStr = e.time ? e.time.slice(11,16) + ' UTC' : '—';
+    const gain = e.est_gain_usd || 0;
+    return `<tr>
+      <td style="color:#6b7280;white-space:nowrap;">${timeStr}</td>
+      <td style="font-weight:600;color:#a78bfa;">${e.asset || '—'}</td>
+      <td style="font-size:11px;color:#34d399;">${e.signal || '—'}</td>
+      <td style="font-size:11px;color:#f87171;">${e.reason || '—'}</td>
+      <td style="color:#fbbf24;">${e.est_gain_pct ? '+' + e.est_gain_pct.toFixed(1) + '%' : '—'}</td>
+      <td style="color:#fbbf24;font-weight:600;">${gain > 0 ? '+$' + gain.toFixed(2) : '—'}</td>
+    </tr>`;
+  }).join('');
+}
+
 function toggleLog() {
   const wrap = document.getElementById('activityLogWrap');
   const btn = document.getElementById('logToggleBtn');
@@ -590,6 +653,7 @@ function applyState(data) {
   if (data.trades) state.trades = data.trades;
   if (data.positions) state.positions = data.positions;
   if (data.cash !== undefined) state.cashBalance = data.cash;
+  if (data.missed_opportunities) state.missedOpportunities = data.missed_opportunities;
   if (data.activity_log && data.activity_log.length > 0) {
     state.activityLog = data.activity_log;
     // Update cycle count immediately
@@ -621,6 +685,7 @@ async function fetchLiveState() {
     renderHoldings();
     renderPositions();
     renderTrades();
+    renderMissedOpportunities();
     renderActivityLog();
     drawChart();
     lastUpdateEl.textContent = 'Live — updated ' + new Date().toLocaleTimeString();
