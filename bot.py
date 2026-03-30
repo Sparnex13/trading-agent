@@ -409,10 +409,30 @@ def should_sell_eth(state, current_price):
 
     return False, None
 
+def score_signal(change_1h, change_24h, volume=0):
+    """
+    Weighted signal score combining 1h momentum, 24h trend alignment, and volume.
+    Returns a float score — higher is stronger.
+    - 1h momentum is primary (weight 0.6)
+    - 24h trend adds confirmation if aligned (weight 0.3)
+    - Volume adds 0-0.1 bonus for high-volume moves
+    """
+    score = change_1h * 0.6
+    # 24h alignment bonus: if 24h is also positive, it confirms the trend
+    if change_24h > 0:
+        score += change_24h * 0.3
+    elif change_24h < -5:
+        score -= abs(change_24h) * 0.1  # mild penalty for recovering from dump
+    # Volume bonus (normalised — volume in USD billions)
+    if volume > 0:
+        vol_b = volume / 1e9
+        score += min(vol_b * 0.01, 0.1)  # cap at 0.1 bonus
+    return score
+
 def scan_sniper_targets(prices):
     """
-    SNIPER MODE: Scan all tracked assets and return ranked list of momentum signals.
-    Returns list of (product_id, symbol, change_1h, change_24h, price) sorted by 1h momentum desc.
+    SNIPER MODE v2: Scan all tracked assets and return ranked list of scored signals.
+    Returns list of (product_id, symbol, score, change_1h, change_24h, price) sorted by score desc.
     """
     candidates = []
     asset_map = {
@@ -426,17 +446,71 @@ def scan_sniper_targets(prices):
         price = data.get("price", 0)
         change_1h = data.get("change_1h") or 0
         change_24h = data.get("change_24h") or 0
+        volume = data.get("volume") or 0
         if price > 0:
-            candidates.append((product_id, sym, change_1h, change_24h, price))
-    # Sort by 1h momentum descending
+            sc = score_signal(change_1h, change_24h, volume)
+            candidates.append((product_id, sym, sc, change_1h, change_24h, price))
+    # Sort by composite score descending
     candidates.sort(key=lambda x: x[2], reverse=True)
     return candidates
 
+def should_rotate_position(state, prices, strategy):
+    """
+    ROTATION CHECK: If we're in a position that's underperforming, and another asset
+    has a significantly stronger signal score, return the better asset to rotate into.
+    Rotation criteria:
+    - Current position is negative OR near-flat (< +0.5%)
+    - Best alternative has score > current held asset's score + 0.3
+    - We haven't rotated in the last 30 minutes
+    Returns (True, product_id, sym, reason) or (False, None, None, reason)
+    """
+    if not state["positions"]:
+        return False, None, None, "No positions to rotate"
+
+    candidates = scan_sniper_targets(prices)
+    if not candidates:
+        return False, None, None, "No price data"
+
+    # Find best alternative (not currently held)
+    held = set(state["positions"].keys())
+    held_scores = {}
+    best_alt = None
+
+    for product_id, sym, sc, c1h, c24h, price in candidates:
+        if sym in held:
+            held_scores[sym] = (sc, c1h, c24h)
+        elif best_alt is None and sc > 0:
+            best_alt = (product_id, sym, sc, c1h, c24h, price)
+
+    if not best_alt or not held_scores:
+        return False, None, None, "No rotation candidate found"
+
+    # Check if current position is underperforming
+    for sym, pos in state["positions"].items():
+        current_price = prices.get(sym, {}).get("price") or pos.get("current_price") or pos["entry"]
+        pnl_pct = (current_price - pos["entry"]) / pos["entry"] * 100
+        held_score = held_scores.get(sym, (0,))[0]
+        alt_product_id, alt_sym, alt_score, alt_1h, alt_24h, alt_price = best_alt
+
+        # Rotation condition: holding is flat/negative AND alternative is significantly stronger
+        rotation_edge = alt_score - held_score
+        if pnl_pct < 0.5 and rotation_edge > 0.25:
+            # Check rotation cooldown (don't rotate more than once per 30 min)
+            last_rotate = state.get("last_rotation_time", 0)
+            if time.time() - last_rotate < 1800:
+                return False, None, None, f"Rotation cooldown ({int((1800 - (time.time()-last_rotate))/60)}min left)"
+
+            reason = (f"ROTATE: {sym} ({pnl_pct:+.2f}%, score={held_score:.3f}) → "
+                      f"{alt_sym} (score={alt_score:.3f}, edge={rotation_edge:+.3f}) | "
+                      f"{alt_sym} 1h={alt_1h:+.2f}% 24h={alt_24h:+.2f}%")
+            return True, alt_product_id, alt_sym, reason
+
+    return False, None, None, "No rotation needed — position performing adequately"
+
 def decide_next_trade(state, cash, prices, total_balance):
     """
-    SNIPER MODE: Fire on any asset showing momentum >= threshold.
-    No dip-wait. Deploy 90% of cash on best signal.
-    Log every considered signal as missed if we can't act.
+    SNIPER MODE v2: Score-based signal selection. Deploy 90% on best scored signal.
+    Also deploys idle cash into second position if main position exists and cash > $5.
     """
     strategy = load_strategy()
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
@@ -449,52 +523,58 @@ def decide_next_trade(state, cash, prices, total_balance):
 
     threshold = strategy["momentum_threshold_1h"]
     candidates = scan_sniper_targets(prices)
+    held = set(state["positions"].keys())
 
     best_signal = None
     best_reason = None
     all_considered = []
 
-    for product_id, sym, change_1h, change_24h, price in candidates:
-        signal_strength = change_1h
-        all_considered.append(f"{sym}: {change_1h:+.2f}% 1h")
+    for product_id, sym, sc, change_1h, change_24h, price in candidates:
+        all_considered.append(f"{sym}: {change_1h:+.2f}%1h score={sc:.2f}")
 
-        # Skip if 24h is extremely bearish (>10% down) — likely a dump not a bounce
+        # Skip assets we're already holding
+        if sym in held:
+            continue
+
+        # Skip if 24h is extremely bearish (>10% down)
         if change_24h < -10:
             state.setdefault("missed_opportunities", []).append({
                 "time": ts, "asset": sym,
-                "reason": f"24h too bearish ({change_24h:.1f}%) — skipping despite {change_1h:+.2f}% 1h",
-                "signal": f"{change_1h:+.2f}% 1h | {change_24h:+.2f}% 24h",
+                "reason": f"24h too bearish ({change_24h:.1f}%)",
+                "signal": f"{change_1h:+.2f}% 1h | {change_24h:+.2f}% 24h | score={sc:.2f}",
                 "price": price,
                 "est_gain_pct": strategy["take_profit_pct"],
                 "est_gain_usd": round(cash * 0.9 * strategy["take_profit_pct"] / 100, 2)
             })
             continue
 
-        if signal_strength >= threshold:
+        if change_1h >= threshold:
             if best_signal is None:
-                best_signal = (product_id, sym, change_1h, change_24h, price)
-                best_reason = f"🎯 SNIPER: {sym} momentum {change_1h:+.2f}% 1h | {change_24h:+.2f}% 24h | Scanned: {', '.join(all_considered)}"
+                best_signal = (product_id, sym, sc, change_1h, change_24h, price)
+                best_reason = f"🎯 SNIPER v2: {sym} score={sc:.3f} | 1h={change_1h:+.2f}% 24h={change_24h:+.2f}% | vs {', '.join(all_considered)}"
         else:
-            # Signal exists but below threshold — log as near-miss
-            if signal_strength > 0:
+            if change_1h > 0:
                 state.setdefault("missed_opportunities", []).append({
                     "time": ts, "asset": sym,
-                    "reason": f"Below threshold ({change_1h:+.2f}% < {threshold}% needed)",
-                    "signal": f"{change_1h:+.2f}% 1h | {change_24h:+.2f}% 24h",
+                    "reason": f"Below threshold ({change_1h:+.2f}% < {threshold}%)",
+                    "signal": f"{change_1h:+.2f}% 1h | score={sc:.2f}",
                     "price": price,
                     "est_gain_pct": strategy["take_profit_pct"],
                     "est_gain_usd": round(cash * 0.9 * strategy["take_profit_pct"] / 100, 2)
                 })
 
     if best_signal:
-        product_id, sym, change_1h, change_24h, price = best_signal
-        # Deploy 90% of available cash
-        trade_usd = round(cash * 0.90, 2)
+        product_id, sym, sc, change_1h, change_24h, price = best_signal
+        # If we already have a position, this is a second position with smaller size
+        if held:
+            trade_usd = round(min(cash * 0.90, cash - 1.0), 2)  # leave $1 buffer
+        else:
+            trade_usd = round(cash * 0.90, 2)
         trade_usd = max(2.0, trade_usd)
         return (product_id, trade_usd), best_reason
 
-    best_str = f"{candidates[0][1]} {candidates[0][2]:+.2f}%" if candidates else "no data"
-    return None, f"No sniper signal — best 1h mover: {best_str} (need >{threshold}%) | All: {', '.join(all_considered) or 'none'}"
+    best_str = f"{candidates[0][1]} score={candidates[0][2]:.2f} {candidates[0][3]:+.2f}%1h" if candidates else "no data"
+    return None, f"No signal — best: {best_str} (need 1h>{threshold}%) | All: {', '.join(all_considered) or 'none'}"
 
 # ── Main hourly run ───────────────────────────────────────────────────────────
 def run_hourly():
@@ -529,16 +609,17 @@ def run_hourly():
     except:
         pass
 
-    # Sync ETH qty from live Coinbase portfolio (source of truth)
-    live_eth_qty = live_positions.get("ETH", {}).get("qty", 0)
-    if "ETH" in state["positions"] and live_eth_qty > 0:
-        state["positions"]["ETH"]["qty"] = live_eth_qty
-        state["positions"]["ETH"]["size_usd"] = round(live_eth_qty * (eth_price or state["positions"]["ETH"]["entry"]), 2)
-
-    # Update peak prices for trailing stops
-    if "ETH" in state["positions"] and eth_price:
-        pos = state["positions"]["ETH"]
-        pos["peak_price"] = max(pos.get("peak_price", eth_price), eth_price)
+    # Sync all positions from live Coinbase portfolio (source of truth)
+    for sym in list(state["positions"].keys()):
+        live_qty = live_positions.get(sym, {}).get("qty", 0)
+        live_price = prices.get(sym, {}).get("price") or 0
+        if live_qty > 0:
+            state["positions"][sym]["qty"] = live_qty
+            if live_price:
+                state["positions"][sym]["size_usd"] = round(live_qty * live_price, 2)
+                state["positions"][sym]["peak_price"] = max(
+                    state["positions"][sym].get("peak_price", live_price), live_price
+                )
 
     report_lines = [
         f"📊 **HOURLY REPORT — Day {day_num}/30 — {ts}**",
@@ -551,6 +632,23 @@ def run_hourly():
     ]
 
     actions_taken = []
+
+    # ── Enforce TP/SL ratio ≥ 1.5:1 in strategy ──
+    strategy = load_strategy()
+    tp = strategy.get("take_profit_pct", 5.0)
+    sl = strategy.get("stop_loss_pct", 7.0)
+    if tp / sl < 1.5:
+        # Tighten stop loss to maintain ratio
+        corrected_sl = round(tp / 1.5, 2)
+        if corrected_sl != sl:
+            strategy["stop_loss_pct"] = corrected_sl
+            strategy.setdefault("adjustments_log", []).append({
+                "time": ts, "changes": [f"stop_loss corrected: {sl}% → {corrected_sl}% (TP:SL ratio fix, TP={tp}%)"],
+                "regime": strategy.get("market_regime", "?")
+            })
+            with open(STRATEGY_FILE, "w") as f:
+                import json as _json
+                _json.dump(strategy, f, indent=2)
 
     # ── Check exit conditions (all open positions) ──
     positions_to_close = []
@@ -568,14 +666,17 @@ def run_hourly():
         pnl_pct = (current_price - entry) / entry * 100
         unrealized_pnl = (current_price - entry) * pos["qty"]
         strategy = load_strategy()
-        stop = entry * (1 - strategy["stop_loss_pct"] / 100)
-        target = entry * (1 + strategy["take_profit_pct"] / 100)
+        # Enforce TP:SL ≥ 1.5:1
+        tp_pct = strategy["take_profit_pct"]
+        sl_pct = min(strategy["stop_loss_pct"], tp_pct / 1.5)
+        stop = entry * (1 - sl_pct / 100)
+        target = entry * (1 + tp_pct / 100)
         pos["stop_loss"] = stop
         pos["target"] = target
 
         report_lines.append(f"**Open Position:** {sym} {pos['qty']:.6f} @ ${entry:.4f} entry")
         report_lines.append(f"  Current: ${current_price:.4f} | P&L: {'+' if unrealized_pnl >= 0 else ''}${unrealized_pnl:.3f} ({pnl_pct:+.2f}%)")
-        report_lines.append(f"  Stop: ${stop:.4f} | Target: ${target:.4f}")
+        report_lines.append(f"  Stop: ${stop:.4f} (-{sl_pct:.1f}%) | Target: ${target:.4f} (+{tp_pct:.1f}%) | Ratio: {tp_pct/sl_pct:.1f}:1")
 
         should_exit = False
         exit_reason = ""
@@ -585,7 +686,7 @@ def run_hourly():
         elif current_price >= target:
             should_exit = True
             exit_reason = f"TAKE-PROFIT HIT — ${current_price:.4f} >= ${target:.4f} (+{pnl_pct:.1f}%)"
-        elif pnl_pct >= strategy["take_profit_pct"] / 2 and pos.get("peak_price", 0) > 0:
+        elif pnl_pct >= tp_pct / 2 and pos.get("peak_price", 0) > 0:
             drawdown = (current_price - pos["peak_price"]) / pos["peak_price"] * 100
             if drawdown < -2:
                 should_exit = True
@@ -616,6 +717,72 @@ def run_hourly():
             del state["positions"][sym]
             actions_taken.append(f"✅ Sold {sym} @ ${exit_price:.4f} | P&L: ${realized_pnl:+.3f} | Back to cash — scanning next sniper target")
             report_lines.append(f"  ✅ **SOLD** @ ${exit_price:.4f} | Realized P&L: ${realized_pnl:+.3f}")
+
+    # ── Rotation check — swap underperforming position for stronger signal ──
+    if state["positions"] and not positions_to_close:
+        strategy = load_strategy()
+        should_rotate, rot_product_id, rot_sym, rot_reason = should_rotate_position(state, prices, strategy)
+        if should_rotate:
+            # Sell current position first
+            for sym, pos in list(state["positions"].items()):
+                product_id = f"{sym}-USD"
+                current_price = prices.get(sym, {}).get("price") or pos.get("current_price") or pos["entry"]
+                live_qty = live_positions.get(sym, {}).get("qty", pos["qty"])
+                report_lines.append(f"")
+                report_lines.append(f"🔄 **ROTATION:** {rot_reason}")
+                status, result = market_sell(product_id, f"{live_qty:.8f}")
+                if result.get("success"):
+                    time.sleep(1)
+                    order_id = result["success_response"]["order_id"]
+                    order = get_order(order_id)
+                    exit_price = float(order.get("average_filled_price", current_price))
+                    realized_pnl = (exit_price - pos["entry"]) * pos["qty"]
+                    held_h = round((time.time() - pos.get("entry_time", time.time())) / 3600, 1)
+                    state["trades"].append({
+                        "time": ts, "asset": sym, "side": "SELL",
+                        "qty": pos["qty"], "entry": pos["entry"], "exit": exit_price,
+                        "sizeUsd": pos.get("size_usd", 0), "pnl": realized_pnl,
+                        "reason": f"ROTATION SELL: {rot_reason}",
+                        "strategy_context": f"Rotated out of {sym} @ ${exit_price:.4f} into {rot_sym} | Held {held_h}h | P&L ${realized_pnl:+.3f}",
+                        "signals": [f"F&G: {fear_greed_val}"]
+                    })
+                    del state["positions"][sym]
+                    actions_taken.append(f"🔄 Rotated {sym} → {rot_sym}")
+                    report_lines.append(f"  Sold {sym} @ ${exit_price:.4f} | P&L: ${realized_pnl:+.3f}")
+            state["last_rotation_time"] = time.time()
+            time.sleep(1)
+            total, cash, live_positions = get_portfolio()
+
+            # Now buy the rotation target
+            trade_usd = round(cash * 0.90, 2)
+            rot_price = prices.get(rot_sym, {}).get("price") or get_price(rot_product_id)
+            status, result = market_buy(rot_product_id, trade_usd)
+            if result.get("success"):
+                time.sleep(1)
+                order_id = result["success_response"]["order_id"]
+                order = get_order(order_id)
+                entry_price = float(order.get("average_filled_price", rot_price))
+                qty = float(order.get("filled_size", 0))
+                strategy = load_strategy()
+                tp_pct = strategy["take_profit_pct"]
+                sl_pct = min(strategy["stop_loss_pct"], tp_pct / 1.5)
+                stop = entry_price * (1 - sl_pct / 100)
+                target = entry_price * (1 + tp_pct / 100)
+                state["positions"][rot_sym] = {
+                    "qty": qty, "entry": entry_price, "stop_loss": stop, "target": target,
+                    "size_usd": trade_usd, "peak_price": entry_price,
+                    "order_id": order_id, "entry_time": time.time()
+                }
+                state["trades"].append({
+                    "time": ts, "asset": rot_sym, "side": "BUY",
+                    "qty": qty, "entry": entry_price, "exit": None,
+                    "sizeUsd": trade_usd, "pnl": None,
+                    "reason": f"ROTATION BUY: {rot_reason}",
+                    "strategy_context": f"Rotated into {rot_sym} @ ${entry_price:.4f} | Stop ${stop:.4f} (-{sl_pct:.1f}%) | Target ${target:.4f} (+{tp_pct:.1f}%)",
+                    "signals": []
+                })
+                actions_taken.append(f"🔄 Bought {rot_sym} @ ${entry_price:.4f}")
+                report_lines.append(f"  Bought {rot_sym} @ ${entry_price:.4f} | Stop: ${stop:.4f} | Target: ${target:.4f}")
 
     # ── Track missed opportunities ──
     # Did we have a signal but couldn't act due to being invested?
@@ -659,8 +826,9 @@ def run_hourly():
         time.sleep(1)
         total, cash, live_positions = get_portfolio()
 
-    # ── Check entry conditions ──
-    if not state["positions"]:
+    # ── Check entry conditions (new position OR deploy idle cash into 2nd position) ──
+    max_positions = 2  # allow up to 2 simultaneous positions
+    if len(state["positions"]) < max_positions:
         trade_signal, signal_reason = decide_next_trade(state, cash, prices, total)
         if trade_signal:
             product_id, trade_usd = trade_signal
@@ -717,23 +885,25 @@ def run_hourly():
         state["missed_opportunities"] = state["missed_opportunities"][-200:]
 
     # ── Activity log entry (shown in dashboard cycle log) ──
-    eth_pos = state["positions"].get("ETH", {})
-    eth_pnl_pct = 0
-    if eth_pos and eth_price and eth_pos.get("entry"):
-        eth_pnl_pct = (eth_price - eth_pos["entry"]) / eth_pos["entry"] * 100
-
-    scalp_pos = state.get("scalp", {}).get("position")
-    xrp_status = f"XRP scalp OPEN @ ${scalp_pos['entry']:.4f}" if scalp_pos else "XRP scalp: watching"
+    # Summarise all open positions for the log
+    pos_summary_pnl = 0
+    pos_names = []
+    for sym, pos in state["positions"].items():
+        cp = prices.get(sym, {}).get("price") or pos.get("current_price") or pos["entry"]
+        pnl_pct = (cp - pos["entry"]) / pos["entry"] * 100 if pos["entry"] else 0
+        pos_summary_pnl += pnl_pct
+        pos_names.append(f"{sym} {pnl_pct:+.1f}%")
+    avg_pnl_pct = pos_summary_pnl / len(state["positions"]) if state["positions"] else 0
 
     log_entry = {
         "time": ts,
         "cycle": len(state.get("balance_history", [])),
         "portfolio": round(total, 2),
         "eth_price": round(eth_price, 2) if eth_price else None,
-        "eth_pnl_pct": round(eth_pnl_pct, 2),
+        "eth_pnl_pct": round(avg_pnl_pct, 2),
         "cash": round(cash, 2),
-        "actions": actions_taken if actions_taken else ["no changes — holding"],
-        "xrp": xrp_status,
+        "actions": actions_taken if actions_taken else [f"holding {', '.join(pos_names) or 'cash'}"],
+        "xrp": f"Positions: {', '.join(pos_names) or 'none'}",
         "regime": load_strategy().get("market_regime", "unknown"),
     }
     state.setdefault("activity_log", []).append(log_entry)
