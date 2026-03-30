@@ -72,6 +72,51 @@ def run_bot():
     )
     return result.stdout.strip(), result.returncode
 
+def push_state_to_github():
+    """Push state.json to GitHub so the dashboard can fetch live data."""
+    try:
+        # Get token
+        token = None
+        env_path = os.path.expanduser("~/.openclaw/workspace/.env")
+        if os.path.exists(env_path):
+            with open(env_path) as f:
+                for line in f:
+                    if line.startswith("GITHUB_TOKEN="):
+                        token = line.strip().split("=", 1)[1].strip('"\'')
+                        break
+        if not token:
+            return
+
+        state_path = os.path.join(TRADING_DIR, "state.json")
+        if not os.path.exists(state_path):
+            return
+
+        with open(state_path, "rb") as f:
+            import base64
+            content_b64 = base64.b64encode(f.read()).decode()
+
+        # Get current SHA of the file (needed for update)
+        headers = {"Authorization": f"token {token}", "Content-Type": "application/json"}
+        r = requests.get(
+            "https://api.github.com/repos/Sparnex13/trading-agent/contents/state.json",
+            headers=headers, timeout=8
+        )
+        sha = r.json().get("sha") if r.status_code == 200 else None
+
+        payload = {
+            "message": f"state: live update {datetime.now(timezone.utc).strftime('%H:%M')}",
+            "content": content_b64,
+        }
+        if sha:
+            payload["sha"] = sha
+
+        requests.put(
+            "https://api.github.com/repos/Sparnex13/trading-agent/contents/state.json",
+            headers=headers, json=payload, timeout=10
+        )
+    except Exception as e:
+        log.debug(f"GitHub push failed: {e}")
+
 def run_research():
     """Run research.py and return output"""
     import subprocess
@@ -124,6 +169,9 @@ def main():
                 log.error(f"Bot exited with code {code}")
             else:
                 log.info(f"Bot check #{iteration} complete")
+
+            # ── Push state to GitHub for live dashboard ──
+            push_state_to_github()
 
             # ── Post to Discord only on actions ──
             if has_action(output):

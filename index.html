@@ -498,26 +498,69 @@ window.closePosition = function(asset) {
   renderPositions();
 };
 
-// Seed initial ETH position from what we know
-state.positions = {
-  "ETH": {
-    qty: 0.018013,
-    entry: 2018.00,
-    stop_loss: 1816.20,
-    target: 2101.30,
-    current_price: 2028.00,
-    size_usd: 36.38
+// ── Live data fetch from GitHub ──────────────────────────────────────────────
+const STATE_URL = "https://raw.githubusercontent.com/Sparnex13/trading-agent/master/state.json";
+const REFRESH_INTERVAL = 60000; // 60 seconds
+
+function applyState(data) {
+  // Map state.json fields to dashboard state
+  if (data.start_balance) state.startBalance = data.start_balance;
+  if (data.balance_history && data.balance_history.length > 0) {
+    const latest = data.balance_history[data.balance_history.length - 1];
+    state.currentBalance = latest.value || state.currentBalance;
+    // Build chart from history (last 48 points)
+    const hist = data.balance_history.slice(-48);
+    state.chartData = hist.map(h => h.value);
+    state.chartLabels = hist.map(h => {
+      const d = new Date(h.time);
+      return isNaN(d) ? h.time.slice(11,16) : d.toLocaleTimeString('en', {hour:'2-digit',minute:'2-digit'});
+    });
   }
+  if (data.trades) state.trades = data.trades;
+  if (data.positions) state.positions = data.positions;
+  if (data.cash !== undefined) state.cashBalance = data.cash;
+
+  // Today's P&L: sum of today's realized trades
+  const today = new Date().toISOString().slice(0,10);
+  state.todayPnl = (data.trades || [])
+    .filter(t => t.time && t.time.startsWith(today) && t.pnl)
+    .reduce((sum, t) => sum + (t.pnl || 0), 0);
+}
+
+async function fetchLiveState() {
+  try {
+    const resp = await fetch(STATE_URL + "?t=" + Date.now()); // cache bust
+    if (!resp.ok) return;
+    const data = await resp.json();
+    applyState(data);
+    updateStats();
+    renderHoldings();
+    renderPositions();
+    renderTrades();
+    drawChart();
+    document.getElementById('lastUpdate').textContent = 'Live — updated ' + new Date().toLocaleTimeString();
+  } catch(e) {
+    console.warn("Could not fetch live state:", e);
+    document.getElementById('lastUpdate').textContent = 'Offline — using cached data';
+  }
+}
+
+// Init with static seed, then fetch live
+state.positions = {
+  "ETH": { qty: 0.018013, entry: 2018.00, stop_loss: 1816.20, target: 2135.45, current_price: 2028.00, size_usd: 36.38 }
 };
 state.cashBalance = 1.70;
 
-// Init
 updateStats();
 renderHoldings();
 renderPositions();
 renderTrades();
 drawChart();
 window.addEventListener('resize', drawChart);
+
+// Fetch live data immediately then every 60s
+fetchLiveState();
+setInterval(fetchLiveState, REFRESH_INTERVAL);
 </script>
 </body>
 </html>
