@@ -341,7 +341,7 @@ def should_sell_eth(state, current_price):
     return False, None
 
 def decide_next_trade(state, cash, prices, total_balance):
-    """Decide whether to enter a new position — uses live strategy params"""
+    """Decide whether to enter a new position — uses live strategy params + dip-buy logic"""
     strategy = load_strategy()
 
     if total_balance < 5:
@@ -358,7 +358,7 @@ def decide_next_trade(state, cash, prices, total_balance):
     preferred = strategy.get("preferred_asset", "ETH-USD")
     symbol = preferred.replace("-USD", "")
     asset_data = prices.get(symbol, {})
-    eth_data = prices.get("ETH", {})
+    current_price = asset_data.get("price", 0)
 
     change_1h = (asset_data.get("price_change_percentage_1h_in_currency") or
                  asset_data.get("change_1h") or 0)
@@ -366,15 +366,31 @@ def decide_next_trade(state, cash, prices, total_balance):
                   asset_data.get("change_24h") or 0)
     threshold = strategy["momentum_threshold_1h"]
 
+    # ── Dip-buy logic ──────────────────────────────────────────────────────
+    # If we just sold (last_sell_price is set), wait for a 1.5% pullback before re-entering
+    last_sell = state.get("last_sell_price", {}).get(symbol, 0)
+    dip_threshold_pct = 1.5
+    if last_sell > 0 and current_price > 0:
+        drop_from_sell = (last_sell - current_price) / last_sell * 100
+        if drop_from_sell < dip_threshold_pct:
+            return None, (
+                f"Waiting for dip: sold @ ${last_sell:.2f}, current ${current_price:.2f} "
+                f"(down {drop_from_sell:.2f}%, need -{dip_threshold_pct}% dip to re-enter)"
+            )
+        else:
+            # Dip achieved — clear the sell price and enter
+            state["last_sell_price"][symbol] = 0
+
+    # Standard momentum entry
     if change_1h > threshold and change_24h > -8:
         trade_usd = min(cash * 0.9, total_balance * (max_invested / 100) - (total_balance - cash))
         trade_usd = max(2.0, round(trade_usd, 2))
         if trade_usd > cash:
             trade_usd = round(cash * 0.9, 2)
-        return (preferred, trade_usd), (
-            f"{symbol} momentum: {change_1h:+.2f}% 1h, {change_24h:+.2f}% 24h "
-            f"(threshold: {threshold}%) | regime: {strategy.get('market_regime','?')}"
-        )
+        reason = f"{symbol} momentum: {change_1h:+.2f}% 1h, {change_24h:+.2f}% 24h"
+        if last_sell > 0:
+            reason += f" | dip re-entry (sold @ ${last_sell:.2f})"
+        return (preferred, trade_usd), reason
 
     return None, f"No signal — {symbol} 1h={change_1h:+.2f}% below threshold {threshold}%"
 
@@ -467,7 +483,9 @@ def run_hourly():
                     "signals": [f"ETH {eth.get('change_1h',0):+.2f}% 1h", f"Fear&Greed: {fear_greed_val}", f"BTC ${btc_price:,.0f}"]
                 })
                 del state["positions"]["ETH"]
-                actions_taken.append(f"✅ Sold ETH @ ${exit_price:.2f} | P&L: ${realized_pnl:+.2f}")
+                # Store sell price for dip-buy logic
+                state.setdefault("last_sell_price", {})["ETH"] = exit_price
+                actions_taken.append(f"✅ Sold ETH @ ${exit_price:.2f} | P&L: ${realized_pnl:+.2f} | Waiting for -1.5% dip to re-enter")
                 report_lines.append(f"  ✅ **SOLD** @ ${exit_price:.2f} | Realized P&L: ${realized_pnl:+.2f}")
 
     # ── XRP Scalp Layer ──
