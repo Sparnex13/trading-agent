@@ -312,7 +312,7 @@ function updateStats() {
   const wins = state.trades.filter(t => t.pnl > 0).length;
   document.getElementById('winRate').textContent = state.trades.length > 0 ? 'Win rate: ' + Math.round(wins/state.trades.length*100) + '%' : 'Win rate: —';
   
-  document.getElementById('lastUpdate').textContent = 'Last updated: ' + new Date().toLocaleTimeString();
+  document.getElementById('lastUpdate').textContent = 'Last updated: ' + new Date().toLocaleTimeString('en-US',{timeZone:'America/Chicago',hour:'2-digit',minute:'2-digit',second:'2-digit'}) + ' CT';
 }
 
 function renderPositions() {
@@ -477,7 +477,7 @@ function renderMissedOpportunities() {
   }
 
   tbody.innerHTML = [...log].reverse().map(e => {
-    const timeStr = e.time ? e.time.slice(11,16) + ' UTC' : '—';
+    const timeStr = e.time ? utcToCentral(e.time) : '—';
     const gain = e.est_gain_usd || 0;
     return `<tr>
       <td style="color:#6b7280;white-space:nowrap;">${timeStr}</td>
@@ -515,7 +515,7 @@ function renderActivityLog() {
     const actions = Array.isArray(e.actions) ? e.actions.join(', ') : (e.actions || '—');
     const hasAction = !actions.includes('no changes');
     const pnlClass = e.eth_pnl_pct > 0 ? 'up' : e.eth_pnl_pct < 0 ? 'down' : 'neutral';
-    const timeStr = e.time ? e.time.slice(11, 16) + ' UTC' : '—';
+    const timeStr = e.time ? utcToCentral(e.time) : '—';
     return `<tr style="${hasAction ? 'background:#0f1629;' : ''}">
       <td style="color:#6b7280;white-space:nowrap;">${timeStr}</td>
       <td style="color:#4b5563;">#${e.cycle || '—'}</td>
@@ -616,7 +616,7 @@ window.addTrade = function(trade) {
   state.trades.push(trade);
   if (trade.pnl) { state.currentBalance += trade.pnl; state.todayPnl += trade.pnl; }
   state.chartData.push(state.currentBalance);
-  state.chartLabels.push(new Date().toLocaleTimeString('en', {hour:'2-digit',minute:'2-digit'}));
+  state.chartLabels.push(new Date().toLocaleTimeString('en-US',{timeZone:'America/Chicago',hour:'2-digit',minute:'2-digit'}));
   updateStats(); renderTrades(); drawChart();
 };
 
@@ -630,6 +630,24 @@ window.closePosition = function(asset) {
   state.positions = state.positions.filter(p => p.asset !== asset);
   renderPositions();
 };
+
+// ── Time helpers ─────────────────────────────────────────────────────────────
+function utcToCentral(utcStr) {
+  if (!utcStr) return '—';
+  try {
+    // utcStr format: "2026-03-30 05:13 UTC" or ISO
+    const normalized = utcStr.replace(' UTC', 'Z').replace(' ', 'T');
+    const d = new Date(normalized);
+    if (isNaN(d)) return utcStr.slice(11,16) + ' CT';
+    return d.toLocaleTimeString('en-US', {
+      hour: '2-digit', minute: '2-digit',
+      timeZone: 'America/Chicago',
+      hour12: true
+    }) + ' CT';
+  } catch(e) {
+    return utcStr.slice(11,16);
+  }
+}
 
 // ── Live data fetch from GitHub ──────────────────────────────────────────────
 // Fetch state.json from same origin (GitHub Pages serves it alongside index.html)
@@ -647,7 +665,7 @@ function applyState(data) {
     state.chartData = hist.map(h => h.value);
     state.chartLabels = hist.map(h => {
       const d = new Date(h.time);
-      return isNaN(d) ? h.time.slice(11,16) : d.toLocaleTimeString('en', {hour:'2-digit',minute:'2-digit'});
+      return isNaN(d) ? utcToCentral(h.time) : d.toLocaleTimeString('en-US',{timeZone:'America/Chicago',hour:'2-digit',minute:'2-digit'});
     });
   }
   if (data.trades) state.trades = data.trades;
@@ -688,7 +706,7 @@ async function fetchLiveState() {
     renderMissedOpportunities();
     renderActivityLog();
     drawChart();
-    lastUpdateEl.textContent = 'Live — updated ' + new Date().toLocaleTimeString();
+    lastUpdateEl.textContent = 'Live — updated ' + new Date().toLocaleTimeString('en-US',{timeZone:'America/Chicago',hour:'2-digit',minute:'2-digit',second:'2-digit'}) + ' CT';
   } catch(e) {
     lastUpdateEl.textContent = 'Fetch failed: ' + e.message;
     console.error("fetchLiveState error:", e);
