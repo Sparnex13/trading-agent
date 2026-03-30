@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trading Agent Dashboard</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0f; color: #e2e8f0; font-family: 'Inter', -apple-system, sans-serif; font-size: 14px; }
+  
+  header { background: #111118; border-bottom: 1px solid #1e1e2e; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
+  header h1 { font-size: 18px; font-weight: 700; color: #a78bfa; letter-spacing: -0.5px; }
+  .live-badge { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #22d3ee; }
+  .live-dot { width: 8px; height: 8px; background: #22d3ee; border-radius: 50%; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+  
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; padding: 20px 24px; }
+  .card { background: #111118; border: 1px solid #1e1e2e; border-radius: 12px; padding: 18px; }
+  .card-label { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+  .card-value { font-size: 26px; font-weight: 700; }
+  .card-sub { font-size: 12px; color: #6b7280; margin-top: 4px; }
+  .up { color: #34d399; }
+  .down { color: #f87171; }
+  .neutral { color: #94a3b8; }
+  
+  .section { padding: 0 24px 20px; }
+  .section-title { font-size: 13px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px; }
+  
+  /* Progress bar */
+  .goal-bar-wrap { background: #111118; border: 1px solid #1e1e2e; border-radius: 12px; padding: 18px; margin: 0 24px 20px; }
+  .goal-header { display: flex; justify-content: space-between; margin-bottom: 10px; }
+  .goal-track { background: #1e1e2e; border-radius: 999px; height: 10px; overflow: hidden; }
+  .goal-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #7c3aed, #06b6d4); transition: width 0.5s ease; }
+  .goal-labels { display: flex; justify-content: space-between; margin-top: 6px; font-size: 11px; color: #6b7280; }
+  
+  /* Liquidity meter */
+  .liquidity { display: flex; align-items: center; gap: 12px; background: #111118; border: 1px solid #1e1e2e; border-radius: 12px; padding: 14px 18px; }
+  .liq-circle { width: 48px; height: 48px; border-radius: 50%; background: conic-gradient(#34d399 var(--pct, 100%), #1e1e2e 0); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #34d399; position: relative; }
+  .liq-circle::before { content: ''; position: absolute; width: 36px; height: 36px; background: #111118; border-radius: 50%; }
+  .liq-circle span { position: relative; z-index: 1; }
+  
+  /* Table */
+  table { width: 100%; border-collapse: collapse; }
+  th { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.8px; padding: 10px 12px; text-align: left; border-bottom: 1px solid #1e1e2e; }
+  td { padding: 10px 12px; border-bottom: 1px solid #111118; font-size: 13px; }
+  tr:hover td { background: #111118; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+  .badge-green { background: #064e3b; color: #34d399; }
+  .badge-yellow { background: #451a03; color: #fbbf24; }
+  .badge-red { background: #450a0a; color: #f87171; }
+  .badge-blue { background: #0c1a3e; color: #60a5fa; }
+  
+  /* Chart placeholder */
+  .chart-container { background: #111118; border: 1px solid #1e1e2e; border-radius: 12px; padding: 18px; height: 200px; display: flex; align-items: center; justify-content: center; color: #374151; }
+  canvas { max-width: 100%; }
+  
+  /* News feed */
+  .news-item { padding: 12px 0; border-bottom: 1px solid #1e1e2e; }
+  .news-item:last-child { border-bottom: none; }
+  .news-header { display: flex; justify-content: space-between; margin-bottom: 4px; }
+  .news-source { font-size: 11px; color: #6b7280; }
+  .news-title { font-size: 13px; color: #e2e8f0; line-height: 1.4; }
+  
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 0 24px 20px; }
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; padding: 0 24px 20px; }
+  
+  .strategy-note { background: #0f1629; border: 1px solid #1e3a5f; border-radius: 12px; padding: 18px; }
+  .strategy-note .label { font-size: 11px; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+  
+  #lastUpdate { font-size: 11px; color: #4b5563; margin-top: 4px; }
+  
+  .row-flex { display: flex; gap: 16px; padding: 0 24px 20px; }
+  .row-flex .card { flex: 1; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>⚡ Trading Agent Dashboard</h1>
+    <div id="lastUpdate">Loading...</div>
+  </div>
+  <div class="live-badge"><span class="live-dot"></span> LIVE</div>
+</header>
+
+<!-- Goal Progress -->
+<div class="goal-bar-wrap">
+  <div class="goal-header">
+    <div>
+      <span style="font-weight:700;font-size:15px;">Goal Progress</span>
+      <span style="color:#6b7280;font-size:12px;margin-left:12px;" id="dayCounter">Day 1 of 30</span>
+    </div>
+    <span style="font-weight:700;" id="goalPct">0%</span>
+  </div>
+  <div class="goal-track"><div class="goal-fill" id="goalFill" style="width:0%"></div></div>
+  <div class="goal-labels"><span id="startBal">Start: $40.00</span><span>Target: $1,000.00</span></div>
+</div>
+
+<!-- Stat Cards -->
+<div class="grid">
+  <div class="card">
+    <div class="card-label">Portfolio Value</div>
+    <div class="card-value" id="portfolioValue">$40.01</div>
+    <div class="card-sub" id="portfolioPnl">—</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Today's P&L</div>
+    <div class="card-value neutral" id="todayPnl">$0.00</div>
+    <div class="card-sub">Since market open</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Total Trades</div>
+    <div class="card-value" id="totalTrades">0</div>
+    <div class="card-sub" id="winRate">Win rate: —</div>
+  </div>
+  <div class="card">
+    <div class="card-label">USD Liquidity</div>
+    <div class="card-value up" id="liquidityPct">100%</div>
+    <div class="card-sub">Can exit in &lt;15 min</div>
+  </div>
+</div>
+
+<!-- Liquidity + Strategy row -->
+<div class="row-flex">
+  <div class="liquidity" style="flex:0 0 auto;">
+    <div class="liq-circle" style="--pct:100%;"><span id="liqCirclePct">100%</span></div>
+    <div>
+      <div style="font-weight:600;font-size:13px;">Liquidity Buffer</div>
+      <div style="color:#34d399;font-size:12px;" id="liqStatus">✓ All positions exit-ready within 15 min</div>
+    </div>
+  </div>
+  <div class="strategy-note" style="flex:1;">
+    <div class="label">Active Strategy</div>
+    <div id="strategyText" style="font-size:13px;color:#93c5fd;line-height:1.6;">
+      Phase 1 complete. Liquidating SHIB → USD → ETH swing trade. Targeting 5–15% moves on ETH/USD with 10% hard stop-loss. Max 80% capital per trade.
+    </div>
+  </div>
+</div>
+
+<!-- Two col: Open Positions + P&L Chart -->
+<div class="two-col">
+  <div class="card">
+    <div class="section-title" style="margin-bottom:12px;">Open Positions</div>
+    <table id="positionsTable">
+      <thead><tr>
+        <th>Asset</th><th>Size</th><th>Entry</th><th>Current</th><th>P&L</th><th>Stop</th>
+      </tr></thead>
+      <tbody id="positionsBody">
+        <tr><td colspan="6" style="color:#4b5563;text-align:center;padding:20px;">No open positions</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="card">
+    <div class="section-title" style="margin-bottom:12px;">Portfolio Value Over Time</div>
+    <canvas id="pnlChart" height="160"></canvas>
+  </div>
+</div>
+
+<!-- Trade History -->
+<div class="section">
+  <div class="section-title">Trade History</div>
+  <div class="card" style="padding:0;">
+    <table>
+      <thead><tr>
+        <th>Time</th><th>Asset</th><th>Side</th><th>Size (USD)</th><th>Entry</th><th>Exit</th><th>P&L</th><th>Reasoning</th>
+      </tr></thead>
+      <tbody id="tradeHistory">
+        <tr><td colspan="8" style="color:#4b5563;text-align:center;padding:20px;">No completed trades yet</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- News + Hourly Report -->
+<div class="two-col">
+  <div class="card">
+    <div class="section-title" style="margin-bottom:12px;">News & Sentiment Feed</div>
+    <div id="newsFeed">
+      <div class="news-item">
+        <div class="news-header"><span class="news-source">CoinDesk</span><span class="badge badge-blue">Neutral</span></div>
+        <div class="news-title">BTC holds $66.6K as macro pressure eases; ETH staking ETF demand rising</div>
+      </div>
+      <div class="news-item">
+        <div class="news-header"><span class="news-source">crypto.com</span><span class="badge badge-green">Bullish</span></div>
+        <div class="news-title">Fed holds rates — BTC $70K level seen as key support in recovery thesis</div>
+      </div>
+      <div class="news-item">
+        <div class="news-header"><span class="news-source">Blockchain Council</span><span class="badge badge-green">Bullish</span></div>
+        <div class="news-title">ETH rallying on staked ETF interest — institutional yield demand shifting dynamics</div>
+      </div>
+      <div class="news-item">
+        <div class="news-header"><span class="news-source">CoinGecko</span><span class="badge badge-yellow">Caution</span></div>
+        <div class="news-title">Fear & Greed was 10/100 on Mar 26 — recovering, stablecoin dry powder at $142B</div>
+      </div>
+      <div class="news-item">
+        <div class="news-header"><span class="news-source">Analysis</span><span class="badge badge-blue">Neutral</span></div>
+        <div class="news-title">Market condition: SIDEWAYS/RECOVERING — BTC -47% from ATH, ETH -59% from ATH</div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="section-title" style="margin-bottom:12px;">Latest Hourly Report</div>
+    <div id="hourlyReport" style="font-size:12px;color:#94a3b8;line-height:1.8;">
+      <div><span style="color:#6b7280;">Time:</span> Mar 29, 2026 — 21:38 CDT</div>
+      <div><span style="color:#6b7280;">Portfolio:</span> $40.01 (start: $40.00)</div>
+      <div><span style="color:#6b7280;">USD liquidity:</span> 100% (exit-ready)</div>
+      <div><span style="color:#6b7280;">Open positions:</span> None</div>
+      <div><span style="color:#6b7280;">Market:</span> Sideways/recovering — Extreme Fear → Fear</div>
+      <div><span style="color:#6b7280;">Action:</span> Liquidating SHIB → ETH entry pending</div>
+      <div><span style="color:#6b7280;">Progress:</span> Day 1 of 30 — $40 of $1,000 target (4%)</div>
+      <div><span style="color:#6b7280;">Risk flagged:</span> SHIB/NEAR not in approved tradeable list — converting to ETH</div>
+    </div>
+  </div>
+</div>
+
+<div style="height:40px;"></div>
+
+<script>
+// State
+const state = {
+  startBalance: 40.00,
+  currentBalance: 40.013558,
+  todayPnl: 0,
+  trades: [],
+  positions: [],
+  chartData: [40.00],
+  chartLabels: ['Start'],
+  startDate: new Date('2026-03-29'),
+};
+
+function updateStats() {
+  const pnl = state.currentBalance - state.startBalance;
+  const pnlPct = (pnl / state.startBalance * 100).toFixed(2);
+  const goalPct = Math.min(((state.currentBalance - state.startBalance) / (1000 - state.startBalance) * 100), 100).toFixed(1);
+  const dayNum = Math.max(1, Math.ceil((new Date() - state.startDate) / 86400000));
+  
+  document.getElementById('portfolioValue').textContent = '$' + state.currentBalance.toFixed(2);
+  document.getElementById('portfolioPnl').textContent = (pnl >= 0 ? '+' : '') + '$' + pnl.toFixed(2) + ' (' + (pnl >= 0 ? '+' : '') + pnlPct + '%)';
+  document.getElementById('portfolioPnl').className = 'card-sub ' + (pnl >= 0 ? 'up' : 'down');
+  document.getElementById('todayPnl').textContent = (state.todayPnl >= 0 ? '+' : '') + '$' + state.todayPnl.toFixed(2);
+  document.getElementById('todayPnl').className = 'card-value ' + (state.todayPnl > 0 ? 'up' : state.todayPnl < 0 ? 'down' : 'neutral');
+  document.getElementById('goalPct').textContent = goalPct + '%';
+  document.getElementById('goalFill').style.width = goalPct + '%';
+  document.getElementById('dayCounter').textContent = 'Day ' + dayNum + ' of 30';
+  document.getElementById('totalTrades').textContent = state.trades.length;
+  
+  const wins = state.trades.filter(t => t.pnl > 0).length;
+  document.getElementById('winRate').textContent = state.trades.length > 0 ? 'Win rate: ' + Math.round(wins/state.trades.length*100) + '%' : 'Win rate: —';
+  
+  document.getElementById('lastUpdate').textContent = 'Last updated: ' + new Date().toLocaleTimeString();
+}
+
+function renderPositions() {
+  const tbody = document.getElementById('positionsBody');
+  if (state.positions.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="color:#4b5563;text-align:center;padding:20px;">No open positions</td></tr>';
+    return;
+  }
+  tbody.innerHTML = state.positions.map(p => {
+    const pnl = (p.current - p.entry) / p.entry * p.sizeUsd;
+    const pnlPct = ((p.current - p.entry) / p.entry * 100).toFixed(2);
+    return `<tr>
+      <td style="font-weight:600;">${p.asset}</td>
+      <td>$${p.sizeUsd.toFixed(2)}</td>
+      <td>$${p.entry.toFixed(2)}</td>
+      <td>$${p.current.toFixed(2)}</td>
+      <td class="${pnl >= 0 ? 'up' : 'down'}">${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)} (${pnlPct}%)</td>
+      <td style="color:#f87171;">$${p.stopLoss.toFixed(2)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderTrades() {
+  const tbody = document.getElementById('tradeHistory');
+  if (state.trades.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" style="color:#4b5563;text-align:center;padding:20px;">No completed trades yet</td></tr>';
+    return;
+  }
+  tbody.innerHTML = state.trades.slice().reverse().map(t => {
+    const cls = t.pnl > 0 ? 'badge-green' : t.pnl < 0 ? 'badge-red' : 'badge-blue';
+    return `<tr>
+      <td style="color:#6b7280;">${t.time}</td>
+      <td style="font-weight:600;">${t.asset}</td>
+      <td><span class="badge ${t.side === 'BUY' ? 'badge-green' : 'badge-red'}">${t.side}</span></td>
+      <td>$${t.sizeUsd.toFixed(2)}</td>
+      <td>$${t.entry.toFixed(4)}</td>
+      <td>${t.exit ? '$'+t.exit.toFixed(4) : '—'}</td>
+      <td class="${t.pnl > 0 ? 'up' : t.pnl < 0 ? 'down' : 'neutral'}">${t.pnl !== null ? (t.pnl >= 0 ? '+' : '')+'$'+t.pnl.toFixed(2) : '—'}</td>
+      <td style="color:#6b7280;font-size:11px;max-width:200px;">${t.reason}</td>
+    </tr>`;
+  }).join('');
+}
+
+// Simple chart using canvas
+function drawChart() {
+  const canvas = document.getElementById('pnlChart');
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.parentElement.offsetWidth - 36;
+  const data = state.chartData;
+  const labels = state.chartLabels;
+  const w = canvas.width, h = canvas.height;
+  const pad = { top: 20, right: 20, bottom: 30, left: 50 };
+  const chartW = w - pad.left - pad.right;
+  const chartH = h - pad.top - pad.bottom;
+  
+  ctx.clearRect(0, 0, w, h);
+  
+  if (data.length < 2) {
+    ctx.fillStyle = '#374151';
+    ctx.font = '13px Inter';
+    ctx.textAlign = 'center';
+    ctx.fillText('Waiting for data...', w/2, h/2);
+    return;
+  }
+  
+  const minV = Math.min(...data) * 0.98;
+  const maxV = Math.max(...data) * 1.02;
+  const range = maxV - minV || 1;
+  
+  const toX = i => pad.left + (i / (data.length - 1)) * chartW;
+  const toY = v => pad.top + chartH - ((v - minV) / range) * chartH;
+  
+  // Grid
+  ctx.strokeStyle = '#1e1e2e';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.top + (chartH / 4) * i;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + chartW, y); ctx.stroke();
+    const val = maxV - (range / 4) * i;
+    ctx.fillStyle = '#4b5563';
+    ctx.font = '10px Inter';
+    ctx.textAlign = 'right';
+    ctx.fillText('$' + val.toFixed(0), pad.left - 4, y + 4);
+  }
+  
+  // Gradient fill
+  const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + chartH);
+  grad.addColorStop(0, 'rgba(124,58,237,0.3)');
+  grad.addColorStop(1, 'rgba(124,58,237,0)');
+  ctx.beginPath();
+  ctx.moveTo(toX(0), toY(data[0]));
+  data.forEach((v, i) => ctx.lineTo(toX(i), toY(v)));
+  ctx.lineTo(toX(data.length - 1), pad.top + chartH);
+  ctx.lineTo(pad.left, pad.top + chartH);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+  
+  // Line
+  ctx.beginPath();
+  ctx.strokeStyle = '#7c3aed';
+  ctx.lineWidth = 2;
+  data.forEach((v, i) => i === 0 ? ctx.moveTo(toX(i), toY(v)) : ctx.lineTo(toX(i), toY(v)));
+  ctx.stroke();
+  
+  // Labels
+  ctx.fillStyle = '#4b5563';
+  ctx.font = '10px Inter';
+  ctx.textAlign = 'center';
+  const step = Math.max(1, Math.floor(labels.length / 5));
+  labels.forEach((l, i) => { if (i % step === 0 || i === labels.length - 1) ctx.fillText(l, toX(i), h - 5); });
+}
+
+// Public API for updating dashboard from trade engine
+window.updateDashboard = function(patch) {
+  Object.assign(state, patch);
+  updateStats();
+  renderPositions();
+  renderTrades();
+  drawChart();
+};
+
+window.addTrade = function(trade) {
+  state.trades.push(trade);
+  if (trade.pnl) { state.currentBalance += trade.pnl; state.todayPnl += trade.pnl; }
+  state.chartData.push(state.currentBalance);
+  state.chartLabels.push(new Date().toLocaleTimeString('en', {hour:'2-digit',minute:'2-digit'}));
+  updateStats(); renderTrades(); drawChart();
+};
+
+window.updatePosition = function(pos) {
+  const idx = state.positions.findIndex(p => p.asset === pos.asset);
+  if (idx >= 0) state.positions[idx] = pos; else state.positions.push(pos);
+  renderPositions();
+};
+
+window.closePosition = function(asset) {
+  state.positions = state.positions.filter(p => p.asset !== asset);
+  renderPositions();
+};
+
+// Init
+updateStats();
+renderPositions();
+renderTrades();
+drawChart();
+window.addEventListener('resize', drawChart);
+</script>
+</body>
+</html>
