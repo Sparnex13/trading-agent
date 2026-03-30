@@ -411,6 +411,12 @@ def run_hourly():
     except:
         pass
 
+    # Sync ETH qty from live Coinbase portfolio (source of truth)
+    live_eth_qty = live_positions.get("ETH", {}).get("qty", 0)
+    if "ETH" in state["positions"] and live_eth_qty > 0:
+        state["positions"]["ETH"]["qty"] = live_eth_qty
+        state["positions"]["ETH"]["size_usd"] = round(live_eth_qty * (eth_price or state["positions"]["ETH"]["entry"]), 2)
+
     # Update peak prices for trailing stops
     if "ETH" in state["positions"] and eth_price:
         pos = state["positions"]["ETH"]
