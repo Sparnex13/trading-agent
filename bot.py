@@ -533,6 +533,30 @@ def run_hourly():
     # ── Store cash balance ──
     state["cash"] = round(cash, 2)
 
+    # ── Activity log entry (shown in dashboard cycle log) ──
+    eth_pos = state["positions"].get("ETH", {})
+    eth_pnl_pct = 0
+    if eth_pos and eth_price and eth_pos.get("entry"):
+        eth_pnl_pct = (eth_price - eth_pos["entry"]) / eth_pos["entry"] * 100
+
+    scalp_pos = state.get("scalp", {}).get("position")
+    xrp_status = f"XRP scalp OPEN @ ${scalp_pos['entry']:.4f}" if scalp_pos else "XRP scalp: watching"
+
+    log_entry = {
+        "time": ts,
+        "cycle": len(state.get("balance_history", [])),
+        "portfolio": round(total, 2),
+        "eth_price": round(eth_price, 2) if eth_price else None,
+        "eth_pnl_pct": round(eth_pnl_pct, 2),
+        "cash": round(cash, 2),
+        "actions": actions_taken if actions_taken else ["no changes — holding"],
+        "xrp": xrp_status,
+        "regime": load_strategy().get("market_regime", "unknown"),
+    }
+    state.setdefault("activity_log", []).append(log_entry)
+    # Keep last 120 entries (2 hours at 1/min)
+    state["activity_log"] = state["activity_log"][-120:]
+
     # ── Update balance history ──
     state["balance_history"].append({"time": ts, "value": round(total, 4)})
     if len(state["balance_history"]) > 720:  # keep 30 days of hourly data

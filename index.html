@@ -173,6 +173,32 @@
   </div>
 </div>
 
+<!-- Activity Log -->
+<div class="section">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+    <div class="section-title" style="margin-bottom:0;">Cycle Activity Log</div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <span id="cycleCount" style="font-size:11px;color:#6b7280;"></span>
+      <button onclick="toggleLog()" id="logToggleBtn"
+        style="background:#1e1e2e;border:1px solid #374151;color:#94a3b8;padding:4px 12px;border-radius:6px;font-size:12px;cursor:pointer;">
+        Show Log
+      </button>
+    </div>
+  </div>
+  <div id="activityLogWrap" style="display:none;">
+    <div class="card" style="padding:0;max-height:320px;overflow-y:auto;">
+      <table>
+        <thead><tr>
+          <th>Time</th><th>Cycle</th><th>Portfolio</th><th>ETH Price</th><th>ETH P&L</th><th>Cash</th><th>Regime</th><th>Actions</th>
+        </tr></thead>
+        <tbody id="activityLogBody">
+          <tr><td colspan="8" style="color:#4b5563;text-align:center;padding:16px;">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 <!-- Trade History -->
 <div class="section">
   <div class="section-title">Trade History & Strategy Log</div>
@@ -233,7 +259,8 @@ const state = {
   cashBalance: 1.70,
   todayPnl: 0,
   trades: [],
-  positions: {},  // keyed by asset symbol
+  positions: {},
+  activityLog: [],
   chartData: [40.00],
   chartLabels: ['Start'],
   startDate: new Date('2026-03-29'),
@@ -398,6 +425,45 @@ function drawChart() {
   labels.forEach((l, i) => { if (i % step === 0 || i === labels.length - 1) ctx.fillText(l, toX(i), h - 5); });
 }
 
+function toggleLog() {
+  const wrap = document.getElementById('activityLogWrap');
+  const btn = document.getElementById('logToggleBtn');
+  const hidden = wrap.style.display === 'none';
+  wrap.style.display = hidden ? 'block' : 'none';
+  btn.textContent = hidden ? 'Hide Log' : 'Show Log';
+}
+
+function renderActivityLog() {
+  const log = state.activityLog || [];
+  const tbody = document.getElementById('activityLogBody');
+  if (!tbody) return;
+
+  const count = document.getElementById('cycleCount');
+  if (count) count.textContent = `${log.length} cycles recorded`;
+
+  if (log.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" style="color:#4b5563;text-align:center;padding:16px;">No cycles yet</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = [...log].reverse().map(e => {
+    const actions = Array.isArray(e.actions) ? e.actions.join(', ') : (e.actions || '—');
+    const hasAction = !actions.includes('no changes');
+    const pnlClass = e.eth_pnl_pct > 0 ? 'up' : e.eth_pnl_pct < 0 ? 'down' : 'neutral';
+    const timeStr = e.time ? e.time.slice(11, 16) + ' UTC' : '—';
+    return `<tr style="${hasAction ? 'background:#0f1629;' : ''}">
+      <td style="color:#6b7280;white-space:nowrap;">${timeStr}</td>
+      <td style="color:#4b5563;">#${e.cycle || '—'}</td>
+      <td style="font-weight:600;">$${(e.portfolio||0).toFixed(2)}</td>
+      <td>${e.eth_price ? '$'+e.eth_price.toLocaleString() : '—'}</td>
+      <td class="${pnlClass}">${e.eth_pnl_pct !== undefined ? (e.eth_pnl_pct >= 0 ? '+' : '') + e.eth_pnl_pct.toFixed(2) + '%' : '—'}</td>
+      <td style="color:#6b7280;">$${(e.cash||0).toFixed(2)}</td>
+      <td><span style="font-size:10px;background:#1e1e2e;padding:1px 6px;border-radius:4px;color:#6b7280;">${e.regime||'?'}</span></td>
+      <td style="font-size:11px;${hasAction ? 'color:#a78bfa;font-weight:600;' : 'color:#4b5563;'}">${actions}</td>
+    </tr>`;
+  }).join('');
+}
+
 function renderHoldings() {
   const tbody = document.getElementById('holdingsBody');
   const positions = state.positions || {};
@@ -521,6 +587,7 @@ function applyState(data) {
   if (data.trades) state.trades = data.trades;
   if (data.positions) state.positions = data.positions;
   if (data.cash !== undefined) state.cashBalance = data.cash;
+  if (data.activity_log) state.activityLog = data.activity_log;
 
   // Today's P&L: sum of today's realized trades
   const today = new Date().toISOString().slice(0,10);
@@ -542,6 +609,7 @@ async function fetchLiveState() {
     renderHoldings();
     renderPositions();
     renderTrades();
+    renderActivityLog();
     drawChart();
     document.getElementById('lastUpdate').textContent = 'Live — updated ' + new Date().toLocaleTimeString();
   } catch(e) {
@@ -560,6 +628,7 @@ updateStats();
 renderHoldings();
 renderPositions();
 renderTrades();
+renderActivityLog();
 drawChart();
 window.addEventListener('resize', drawChart);
 
