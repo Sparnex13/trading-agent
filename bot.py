@@ -492,13 +492,18 @@ def should_rotate_position(state, prices, strategy):
         held_score = held_scores.get(sym, (0,))[0]
         alt_product_id, alt_sym, alt_score, alt_1h, alt_24h, alt_price = best_alt
 
-        # Rotation condition: holding is flat/negative AND alternative is significantly stronger
+        # Rotation condition:
+        # - Position is clearly negative (>1% down) — not just flat
+        # - Alternative has a significant score edge (>0.5)
+        # - Position has been held at least 2 hours (avoid rotating too soon)
+        # - 3-hour cooldown between rotations
         rotation_edge = alt_score - held_score
-        if pnl_pct < 0.5 and rotation_edge > 0.25:
-            # Check rotation cooldown (don't rotate more than once per 30 min)
+        held_hours = (time.time() - pos.get("entry_time", time.time())) / 3600
+        if pnl_pct < -1.0 and rotation_edge > 0.5 and held_hours >= 2.0:
+            # Check rotation cooldown
             last_rotate = state.get("last_rotation_time", 0)
-            if time.time() - last_rotate < 1800:
-                return False, None, None, f"Rotation cooldown ({int((1800 - (time.time()-last_rotate))/60)}min left)"
+            if time.time() - last_rotate < 10800:  # 3 hour cooldown
+                return False, None, None, f"Rotation cooldown ({int((10800 - (time.time()-last_rotate))/60)}min left)"
 
             reason = (f"ROTATE: {sym} ({pnl_pct:+.2f}%, score={held_score:.3f}) → "
                       f"{alt_sym} (score={alt_score:.3f}, edge={rotation_edge:+.3f}) | "
