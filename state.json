@@ -5,11 +5,11 @@
       "entry": 82.29,
       "stop_loss": 80.37264300000001,
       "target": 85.17015,
-      "size_usd": 32.15,
+      "size_usd": 32.16,
       "peak_price": 82.29,
       "order_id": "8b731834-95ce-4320-88e2-d09b5487f478",
       "entry_time": 1774916419.0661335,
-      "current_price": 82.26
+      "current_price": 82.28
     }
   },
   "trades": [
@@ -166,10 +166,6 @@
     }
   ],
   "balance_history": [
-    {
-      "time": "2026-03-30 11:56 UTC",
-      "value": 40.0028
-    },
     {
       "time": "2026-03-30 11:57 UTC",
       "value": 40.0088
@@ -3045,6 +3041,10 @@
     {
       "time": "2026-03-31 00:26 UTC",
       "value": 36.7831
+    },
+    {
+      "time": "2026-03-31 00:27 UTC",
+      "value": 36.7992
     }
   ],
   "start_balance": 40.0,
@@ -3056,19 +3056,6 @@
   },
   "last_day": 2,
   "activity_log": [
-    {
-      "time": "2026-03-30 22:21 UTC",
-      "cycle": 720,
-      "portfolio": 38.49,
-      "eth_price": 2034.62,
-      "eth_pnl_pct": -0.94,
-      "cash": 1.01,
-      "actions": [
-        "holding SOL -1.6%, ETH -0.2%"
-      ],
-      "xrp": "Positions: SOL -1.6%, ETH -0.2%",
-      "regime": "extreme_fear"
-    },
     {
       "time": "2026-03-30 22:22 UTC",
       "cycle": 720,
@@ -4618,18 +4605,22 @@
       ],
       "xrp": "Positions: SOL -0.0%",
       "regime": "extreme_fear"
+    },
+    {
+      "time": "2026-03-31 00:27 UTC",
+      "cycle": 720,
+      "portfolio": 36.8,
+      "eth_price": 2022.49,
+      "eth_pnl_pct": -0.01,
+      "cash": 3.62,
+      "actions": [
+        "holding SOL -0.0%"
+      ],
+      "xrp": "Positions: SOL -0.0%",
+      "regime": "extreme_fear"
     }
   ],
   "missed_opportunities": [
-    {
-      "time": "2026-03-30 20:51 UTC",
-      "asset": "XRP",
-      "reason": "Fully invested in SOL",
-      "signal": "+0.27% 1h | +0.11% 24h",
-      "price": 1.32,
-      "est_gain_pct": 5.0,
-      "est_gain_usd": 1.73
-    },
     {
       "time": "2026-03-30 20:52 UTC",
       "asset": "BTC",
@@ -6418,6 +6409,15 @@
       "reason": "Below threshold (+0.05% < 0.1%)",
       "signal": "+0.05% 1h | score=0.13",
       "price": 66611,
+      "est_gain_pct": 3.5,
+      "est_gain_usd": 0.11
+    },
+    {
+      "time": "2026-03-31 00:27 UTC",
+      "asset": "BTC",
+      "reason": "Below threshold (+0.03% < 0.1%)",
+      "signal": "+0.03% 1h | score=0.15",
+      "price": 66676,
       "est_gain_pct": 3.5,
       "est_gain_usd": 0.11
     }
