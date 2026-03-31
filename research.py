@@ -269,21 +269,15 @@ def determine_strategy(fear_greed, avg_7d_fg, market_data, global_data, perf, st
         changes.append(f"take_profit: {old_tp}% → {new_tp}%")
         strategy["take_profit_pct"] = new_tp
 
-    # ── Adjust stop-loss ────────────────────────────────────────────────
+    # ── Adjust stop-loss: always derived from TP to maintain 1.5:1 ratio ──
+    # Previously we set SL=7% then ratio-locked to 3.33% every single run — causing
+    # 24+ identical log entries. Now SL is derived from TP directly: no oscillation.
     old_sl = strategy["stop_loss_pct"]
-    if "extreme_fear" in regime or "bear" in regime:
-        # Tighter stop in fear/bear — don't let losses run
-        new_sl = 7.0
-        reasoning_parts.append("Bear/extreme fear → tightening stop-loss to 7%")
-    elif "extreme_greed" in regime:
-        new_sl = 12.0
-        reasoning_parts.append("Extreme greed → wider stop 12% (less whipsaw risk)")
-    else:
-        new_sl = 10.0
-    
-    if abs(new_sl - old_sl) >= 1:
-        changes.append(f"stop_loss: {old_sl}% → {new_sl}%")
+    new_sl = round(strategy["take_profit_pct"] / 1.5, 2)
+    if abs(new_sl - old_sl) > 0.05:
+        changes.append(f"stop_loss: {old_sl}% → {new_sl}% (derived from TP/1.5)")
         strategy["stop_loss_pct"] = new_sl
+        reasoning_parts.append(f"Stop-loss set to {new_sl}% (TP÷1.5 ratio maintained)")
 
     # ── Adjust momentum threshold ──────────────────────────────────────
     old_mom = strategy["momentum_threshold_1h"]
@@ -366,11 +360,25 @@ def determine_strategy(fear_greed, avg_7d_fg, market_data, global_data, perf, st
             reasoning_parts.append(f"Glint macro signal bullish ({glint_score:+.1f}) → extending take-profit to {new_tp:.1f}%")
     elif glint_score <= -0.5:
         old_tp = strategy["take_profit_pct"]
-        new_tp = max(old_tp * 0.7, 3.0)  # shrink take-profit, take gains fast
-        if new_tp < old_tp - 1:
+        new_tp = max(old_tp * 0.7, 4.5)  # shrink take-profit, take gains fast — floor 4.5% (covers fees + needs viable edge)
+        if new_tp < old_tp - 0.5:
+            # Always co-adjust SL to maintain 1.5:1 TP:SL ratio — eliminates bot.py ratio-fixer oscillation
+            new_sl = round(new_tp / 1.5, 2)
             changes.append(f"take_profit GLINT CUT: {old_tp}% → {new_tp:.1f}% (macro bearish signal)")
+            changes.append(f"stop_loss GLINT CO-ADJUST: {strategy['stop_loss_pct']}% → {new_sl}% (TP:SL ratio lock 1.5:1)")
             strategy["take_profit_pct"] = new_tp
-            reasoning_parts.append(f"Glint macro signal bearish ({glint_score:+.1f}) → tightening take-profit to {new_tp:.1f}%")
+            strategy["stop_loss_pct"] = new_sl
+            reasoning_parts.append(f"Glint macro signal bearish ({glint_score:+.1f}) → tightening take-profit to {new_tp:.1f}%, SL to {new_sl}%")
+
+    # ── Final ratio lock: enforce TP:SL ≥ 1.5:1 after all adjustments ──
+    # This prevents bot.py from needing to correct the ratio every minute
+    final_tp = strategy["take_profit_pct"]
+    final_sl = strategy["stop_loss_pct"]
+    if final_sl > 0 and (final_tp / final_sl) < 1.5:
+        locked_sl = round(final_tp / 1.5, 2)
+        if locked_sl != final_sl:
+            changes.append(f"stop_loss ratio-locked: {final_sl}% → {locked_sl}% (enforce TP:SL=1.5:1)")
+            strategy["stop_loss_pct"] = locked_sl
 
     return strategy, changes
 

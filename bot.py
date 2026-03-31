@@ -214,9 +214,9 @@ def get_crypto_prices():
 SCALP_ASSET = "XRP-USD"
 SCALP_SYMBOL = "XRP"
 SCALP_ALLOC_USD = 5.0       # fixed $5 per scalp trade (small, frequent)
-SCALP_TARGET_PCT = 1.5      # take profit at +1.5%
-SCALP_STOP_PCT = 0.6        # stop loss at -0.6% (tight, fees ~1.2% round trip)
-SCALP_ENTRY_MOVE_PCT = 0.3  # enter if XRP moved up ≥0.3% since last check
+SCALP_TARGET_PCT = 3.0      # take profit at +3.0% (net ~1.8% after 1.2% round-trip fees)
+SCALP_STOP_PCT = 1.5        # stop loss at -1.5% (net -2.7% after fees — 1.5:1 net ratio)
+SCALP_ENTRY_MOVE_PCT = 0.5  # enter if XRP moved up >=0.5% since last check (reduce noise)
 SCALP_COOLDOWN_MINS = 5     # min minutes between scalp entries
 
 def check_scalp(state, prices, cash, total):
@@ -492,17 +492,17 @@ def should_rotate_position(state, prices, strategy):
         held_score = held_scores.get(sym, (0,))[0]
         alt_product_id, alt_sym, alt_score, alt_1h, alt_24h, alt_price = best_alt
 
-        # Rotation condition:
-        # - Position is clearly negative (>1% down) — not just flat
-        # - Alternative has a significant score edge (>0.5)
-        # - Position has been held at least 2 hours (avoid rotating too soon)
-        # - 3-hour cooldown between rotations
+        # Rotation condition — conservative to avoid fee-burning churn:
+        # - Position clearly negative (>2% down) — not mildly negative
+        # - Strong score edge (>0.8) — meaningful signal divergence, not noise
+        # - Held at least 4 hours — give position time to work before cutting
+        # - 6-hour cooldown — each rotation burns ~2.4% round-trip in fees
         rotation_edge = alt_score - held_score
         held_hours = (time.time() - pos.get("entry_time", time.time())) / 3600
-        if pnl_pct < -1.0 and rotation_edge > 0.5 and held_hours >= 2.0:
+        if pnl_pct < -2.0 and rotation_edge > 0.8 and held_hours >= 4.0:
             # Check rotation cooldown
             last_rotate = state.get("last_rotation_time", 0)
-            if time.time() - last_rotate < 10800:  # 3 hour cooldown
+            if time.time() - last_rotate < 21600:  # 6 hour cooldown
                 return False, None, None, f"Rotation cooldown ({int((10800 - (time.time()-last_rotate))/60)}min left)"
 
             reason = (f"ROTATE: {sym} ({pnl_pct:+.2f}%, score={held_score:.3f}) → "
@@ -638,19 +638,22 @@ def run_hourly():
 
     actions_taken = []
 
-    # ── Enforce TP/SL ratio ≥ 1.5:1 in strategy ──
+    # ── Safety: Enforce TP/SL ratio ≥ 1.5:1 (should be locked by research.py now) ──
+    # This is a last-resort guard — research.py now co-adjusts SL when Glint fires,
+    # so this should rarely trigger and NOT log to adjustments_log (prevents log spam).
     strategy = load_strategy()
     tp = strategy.get("take_profit_pct", 5.0)
     sl = strategy.get("stop_loss_pct", 7.0)
-    if tp / sl < 1.5:
-        # Tighten stop loss to maintain ratio
+    if sl > 0 and tp / sl < 1.5:
         corrected_sl = round(tp / 1.5, 2)
         if corrected_sl != sl:
             strategy["stop_loss_pct"] = corrected_sl
-            strategy.setdefault("adjustments_log", []).append({
-                "time": ts, "changes": [f"stop_loss corrected: {sl}% → {corrected_sl}% (TP:SL ratio fix, TP={tp}%)"],
-                "regime": strategy.get("market_regime", "?")
-            })
+            # Only log if significantly off (avoid log spam from minor float drift)
+            if abs(corrected_sl - sl) > 0.1:
+                strategy.setdefault("adjustments_log", []).append({
+                    "time": ts, "changes": [f"stop_loss emergency-fix: {sl}% → {corrected_sl}% (ratio<1.5:1, TP={tp}%)"],
+                    "regime": strategy.get("market_regime", "?")
+                })
             with open(STRATEGY_FILE, "w") as f:
                 import json as _json
                 _json.dump(strategy, f, indent=2)

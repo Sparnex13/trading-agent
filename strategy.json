@@ -1,120 +1,103 @@
 {
-  "take_profit_pct": 3.5,
-  "stop_loss_pct": 7.0,
+  "take_profit_pct": 5.0,
+  "stop_loss_pct": 3.33,
   "momentum_threshold_1h": 0.1,
-  "max_position_pct": 70.0,
+  "max_position_pct": 60.0,
   "preferred_asset": "ETH-USD",
-  "last_updated": "2026-03-30 16:15 UTC",
-  "reasoning": "Market regime: extreme_fear | F&G: 8/100 (7d avg: 11) | ETH: 1h=+0.00% 24h=+0.00% 7d=+0.00% | BTC: 24h=+0.00% | Dominance: 0.0% | Extreme fear \u2192 tightening take-profit to 5% (high volatility, take gains fast) | Bear/extreme fear \u2192 tightening stop-loss to 7% | Extreme fear \u2192 lowering 1h momentum threshold to 0.1% (scarce signals) | Extreme fear \u2192 70% max position (keep more buffer)",
+  "last_updated": "2026-03-31 23:05 UTC",
+  "reasoning": "Market regime: extreme_fear | F&G: 11/100 (7d avg: 11) | ETH: 1h=-0.08% 24h=+3.82% 7d=-2.50% | BTC: 24h=+2.50% | Dominance: 56.3% | Extreme fear \u2192 tightening take-profit to 5% (high volatility, take gains fast) | Extreme fear \u2192 lowering 1h momentum threshold to 0.1% (scarce signals) | 3+ recent losses \u2192 reducing position size to 60%",
   "market_regime": "extreme_fear",
-  "fear_greed": 8,
+  "fear_greed": 11,
   "adjustments_log": [
     {
-      "time": "2026-03-30 03:01 UTC",
+      "time": "2026-03-31 13:07 UTC",
       "changes": [
-        "take_profit: 8.0% \u2192 5.0%",
-        "stop_loss: 10.0% \u2192 7.0%",
-        "momentum_1h_threshold: 0.3 \u2192 0.1",
-        "max_position: 80.0% \u2192 70.0%"
+        "stop_loss: 3.33% \u2192 7.0%",
+        "stop_loss ratio-locked: 7.0% \u2192 3.33% (enforce TP:SL=1.5:1)"
       ],
       "regime": "extreme_fear",
-      "fear_greed": 8
+      "fear_greed": 11
     },
     {
-      "time": "2026-03-30 03:28 UTC",
+      "time": "2026-03-31 14:08 UTC",
       "changes": [
-        "take_profit GLINT BOOST: 5.0% \u2192 7.5%"
+        "stop_loss: 3.33% \u2192 7.0%",
+        "stop_loss ratio-locked: 7.0% \u2192 3.33% (enforce TP:SL=1.5:1)"
       ],
       "regime": "extreme_fear",
-      "fear_greed": 8,
-      "trigger": "Glint: Fed rate cut signal from NickTimiraos"
+      "fear_greed": 11
     },
     {
-      "time": "2026-03-30 03:29 UTC",
+      "time": "2026-03-31 15:09 UTC",
       "changes": [
-        "take_profit: 7.5% \u2192 5.0%"
+        "stop_loss: 3.33% \u2192 7.0%",
+        "stop_loss ratio-locked: 7.0% \u2192 3.33% (enforce TP:SL=1.5:1)"
       ],
       "regime": "extreme_fear",
-      "fear_greed": 8
+      "fear_greed": 11
     },
     {
-      "time": "2026-03-30 07:23 UTC",
+      "time": "2026-03-31 16:09 UTC",
       "changes": [
-        "take_profit: 3.5% \u2192 5.0%",
-        "take_profit GLINT CUT: 5.0% \u2192 3.5% (macro bearish signal)"
+        "stop_loss: 3.33% \u2192 7.0%",
+        "stop_loss ratio-locked: 7.0% \u2192 3.33% (enforce TP:SL=1.5:1)"
       ],
       "regime": "extreme_fear",
-      "fear_greed": 8
+      "fear_greed": 11
     },
     {
-      "time": "2026-03-30 08:24 UTC",
+      "time": "2026-03-31 17:10 UTC",
       "changes": [
-        "take_profit: 3.5% \u2192 5.0%",
-        "take_profit GLINT CUT: 5.0% \u2192 3.5% (macro bearish signal)"
+        "stop_loss: 3.33% \u2192 7.0%",
+        "stop_loss ratio-locked: 7.0% \u2192 3.33% (enforce TP:SL=1.5:1)"
       ],
       "regime": "extreme_fear",
-      "fear_greed": 8
+      "fear_greed": 11
     },
     {
-      "time": "2026-03-30 09:25 UTC",
+      "time": "2026-03-31 18:11 UTC",
       "changes": [
-        "take_profit: 3.5% \u2192 5.0%",
-        "take_profit GLINT CUT: 5.0% \u2192 3.5% (macro bearish signal)"
+        "stop_loss: 3.33% \u2192 7.0%",
+        "stop_loss ratio-locked: 7.0% \u2192 3.33% (enforce TP:SL=1.5:1)"
       ],
       "regime": "extreme_fear",
-      "fear_greed": 8
+      "fear_greed": 11
     },
     {
-      "time": "2026-03-30 10:26 UTC",
+      "time": "2026-03-31 19:12 UTC",
       "changes": [
-        "take_profit: 3.5% \u2192 5.0%"
+        "stop_loss: 3.33% \u2192 7.0%",
+        "stop_loss ratio-locked: 7.0% \u2192 3.33% (enforce TP:SL=1.5:1)"
       ],
       "regime": "extreme_fear",
-      "fear_greed": 8
+      "fear_greed": 11
     },
     {
-      "time": "2026-03-30 12:28 UTC",
+      "time": "2026-03-31 20:13 UTC",
       "changes": [
-        "take_profit: 3.5% \u2192 5.0%",
-        "take_profit GLINT CUT: 5.0% \u2192 3.5% (macro bearish signal)"
+        "stop_loss: 3.33% \u2192 7.0%",
+        "stop_loss ratio-locked: 7.0% \u2192 3.33% (enforce TP:SL=1.5:1)"
       ],
       "regime": "extreme_fear",
-      "fear_greed": 8
+      "fear_greed": 11
     },
     {
-      "time": "2026-03-30 13:29 UTC",
+      "time": "2026-03-31 21:13 UTC",
       "changes": [
-        "take_profit: 3.5% \u2192 5.0%",
-        "take_profit GLINT CUT: 5.0% \u2192 3.5% (macro bearish signal)"
+        "stop_loss: 3.33% \u2192 7.0%",
+        "stop_loss ratio-locked: 7.0% \u2192 3.33% (enforce TP:SL=1.5:1)"
       ],
       "regime": "extreme_fear",
-      "fear_greed": 8
+      "fear_greed": 11
     },
     {
-      "time": "2026-03-30 14:29 UTC",
+      "time": "2026-03-31 22:14 UTC",
       "changes": [
-        "take_profit: 3.5% \u2192 5.0%",
-        "take_profit GLINT CUT: 5.0% \u2192 3.5% (macro bearish signal)"
+        "stop_loss: 3.33% \u2192 7.0%",
+        "stop_loss ratio-locked: 7.0% \u2192 3.33% (enforce TP:SL=1.5:1)"
       ],
       "regime": "extreme_fear",
-      "fear_greed": 8
-    },
-    {
-      "time": "2026-03-30 15:29 UTC",
-      "changes": [
-        "take_profit: 3.5% \u2192 5.0%"
-      ],
-      "regime": "extreme_fear",
-      "fear_greed": 8
-    },
-    {
-      "time": "2026-03-30 16:15 UTC",
-      "changes": [
-        "take_profit: 3.5% \u2192 5.0%",
-        "take_profit GLINT CUT: 5.0% \u2192 3.5% (macro bearish signal)"
-      ],
-      "regime": "extreme_fear",
-      "fear_greed": 8
+      "fear_greed": 11
     }
   ]
 }
