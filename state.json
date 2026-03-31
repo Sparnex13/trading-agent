@@ -5,11 +5,21 @@
       "entry": 2022.31,
       "stop_loss": 1975.190177,
       "target": 2093.0908499999996,
-      "size_usd": 33.35,
-      "peak_price": 2022.31,
+      "size_usd": 32.96,
+      "peak_price": 2022.79,
       "order_id": "6987f0c8-2ba6-4e23-aa18-3bc94ff1d908",
       "entry_time": 1774915534.6465476,
-      "current_price": 2023.0
+      "current_price": 2022.79
+    },
+    "BTC": {
+      "qty": 3.988e-05,
+      "entry": 66694.49,
+      "stop_loss": 65140.50838300001,
+      "target": 69028.79715,
+      "size_usd": 2.7,
+      "peak_price": 66694.49,
+      "order_id": "c0a888bb-caba-4665-9cce-a406b12e58ce",
+      "entry_time": 1774915599.4644322
     }
   },
   "trades": [
@@ -103,13 +113,26 @@
         "24h: +2.08%",
         "BTC $66,689"
       ]
+    },
+    {
+      "time": "2026-03-31 00:06 UTC",
+      "asset": "BTC",
+      "side": "BUY",
+      "qty": 3.988e-05,
+      "entry": 66694.49,
+      "exit": null,
+      "sizeUsd": 2.7,
+      "pnl": null,
+      "reason": "\ud83c\udfaf SNIPER v2: BTC score=0.750 | 1h=+0.44% 24h=+1.28% | vs ETH: +0.36%1h score=0.94, BTC: +0.44%1h score=0.75",
+      "strategy_context": "SNIPER: BTC @ $66694.4900 | 1h: +0.44% | Stop: $65140.5084 (-2.33%) | Target: $69028.7971 (+3.5%) | Deployed: $2.70 (7% of portfolio)",
+      "signals": [
+        "1h: +0.44%",
+        "24h: +1.28%",
+        "BTC $66,706"
+      ]
     }
   ],
   "balance_history": [
-    {
-      "time": "2026-03-30 11:36 UTC",
-      "value": 40.0116
-    },
     {
       "time": "2026-03-30 11:37 UTC",
       "value": 40.0615
@@ -2985,30 +3008,21 @@
     {
       "time": "2026-03-31 00:05 UTC",
       "value": 38.0587
+    },
+    {
+      "time": "2026-03-31 00:06 UTC",
+      "value": 37.6528
     }
   ],
   "start_balance": 40.0,
   "day": 2,
-  "cash": 37.05,
+  "cash": 3.7,
   "scalp": {
     "trades_today": 0,
     "last_price": 1.32
   },
   "last_day": 2,
   "activity_log": [
-    {
-      "time": "2026-03-30 22:01 UTC",
-      "cycle": 720,
-      "portfolio": 38.63,
-      "eth_price": 2035.44,
-      "eth_pnl_pct": -0.71,
-      "cash": 1.01,
-      "actions": [
-        "holding SOL -1.2%, ETH -0.2%"
-      ],
-      "xrp": "Positions: SOL -1.2%, ETH -0.2%",
-      "regime": "extreme_fear"
-    },
     {
       "time": "2026-03-30 22:02 UTC",
       "cycle": 720,
@@ -4556,36 +4570,22 @@
       ],
       "xrp": "Positions: ETH +0.0%",
       "regime": "extreme_fear"
+    },
+    {
+      "time": "2026-03-31 00:06 UTC",
+      "cycle": 720,
+      "portfolio": 37.65,
+      "eth_price": 2022.79,
+      "eth_pnl_pct": 0.02,
+      "cash": 3.7,
+      "actions": [
+        "\ud83c\udfaf Sniper buy: 0.000040 BTC @ $66694.4900"
+      ],
+      "xrp": "Positions: ETH +0.0%, BTC +0.0%",
+      "regime": "extreme_fear"
     }
   ],
   "missed_opportunities": [
-    {
-      "time": "2026-03-30 20:45 UTC",
-      "asset": "XRP",
-      "reason": "Fully invested in SOL",
-      "signal": "+0.37% 1h | +0.00% 24h",
-      "price": 1.32,
-      "est_gain_pct": 5.0,
-      "est_gain_usd": 1.73
-    },
-    {
-      "time": "2026-03-30 20:46 UTC",
-      "asset": "BTC",
-      "reason": "Fully invested in SOL",
-      "signal": "+0.35% 1h | +0.05% 24h",
-      "price": 66603,
-      "est_gain_pct": 5.0,
-      "est_gain_usd": 1.73
-    },
-    {
-      "time": "2026-03-30 20:46 UTC",
-      "asset": "ETH",
-      "reason": "Fully invested in SOL",
-      "signal": "+0.18% 1h | +1.11% 24h",
-      "price": 2022.87,
-      "est_gain_pct": 5.0,
-      "est_gain_usd": 1.73
-    },
     {
       "time": "2026-03-30 20:46 UTC",
       "asset": "XRP",
@@ -6358,6 +6358,33 @@
       "price": 1.32,
       "est_gain_pct": 3.5,
       "est_gain_usd": 1.17
+    },
+    {
+      "time": "2026-03-31 00:06 UTC",
+      "asset": "BTC",
+      "reason": "Fully invested in ETH",
+      "signal": "+0.44% 1h | +1.28% 24h",
+      "price": 66706,
+      "est_gain_pct": 3.5,
+      "est_gain_usd": 1.19
+    },
+    {
+      "time": "2026-03-31 00:06 UTC",
+      "asset": "SOL",
+      "reason": "Below threshold (+0.07% < 0.1%)",
+      "signal": "+0.07% 1h | score=0.49",
+      "price": 82.45,
+      "est_gain_pct": 3.5,
+      "est_gain_usd": 0.12
+    },
+    {
+      "time": "2026-03-31 00:06 UTC",
+      "asset": "XRP",
+      "reason": "Below threshold (+0.06% < 0.1%)",
+      "signal": "+0.06% 1h | score=0.06",
+      "price": 1.32,
+      "est_gain_pct": 3.5,
+      "est_gain_usd": 0.12
     }
   ],
   "last_sell_price": 2067.03,
