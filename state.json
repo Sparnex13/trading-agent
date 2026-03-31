@@ -5,11 +5,11 @@
       "entry": 2034.11,
       "stop_loss": 1966.374137,
       "target": 2135.8155,
-      "size_usd": 31.68,
-      "peak_price": 2041.04,
+      "size_usd": 31.71,
+      "peak_price": 2043.28,
       "order_id": "63fed049-972a-475e-8f3a-6a9b28ddddd8",
       "entry_time": 1774918247.1083999,
-      "current_price": 2041.04
+      "current_price": 2043.28
     },
     "BTC": {
       "qty": 3.741e-05,
@@ -17,10 +17,10 @@
       "stop_loss": 64857.79773200001,
       "target": 70446.558,
       "size_usd": 2.52,
-      "peak_price": 67288,
+      "peak_price": 67332,
       "order_id": "2ed9196b-a105-4ab4-9f95-e1d4e6231bec",
       "entry_time": 1774918249.893681,
-      "current_price": 67288
+      "current_price": 67332
     }
   },
   "trades": [
@@ -254,10 +254,6 @@
     }
   ],
   "balance_history": [
-    {
-      "time": "2026-03-30 12:49 UTC",
-      "value": 40.1035
-    },
     {
       "time": "2026-03-30 12:50 UTC",
       "value": 40.1098
@@ -3133,6 +3129,10 @@
     {
       "time": "2026-03-31 01:20 UTC",
       "value": 36.2632
+    },
+    {
+      "time": "2026-03-31 01:21 UTC",
+      "value": 36.2803
     }
   ],
   "start_balance": 40.0,
@@ -3144,19 +3144,6 @@
   },
   "last_day": 2,
   "activity_log": [
-    {
-      "time": "2026-03-30 23:15 UTC",
-      "cycle": 720,
-      "portfolio": 38.06,
-      "eth_price": 2018.75,
-      "eth_pnl_pct": 0,
-      "cash": 37.05,
-      "actions": [
-        "holding cash"
-      ],
-      "xrp": "Positions: none",
-      "regime": "extreme_fear"
-    },
     {
       "time": "2026-03-30 23:16 UTC",
       "cycle": 720,
@@ -4708,27 +4695,22 @@
       ],
       "xrp": "Positions: ETH +0.3%, BTC +0.3%",
       "regime": "extreme_fear"
+    },
+    {
+      "time": "2026-03-31 01:21 UTC",
+      "cycle": 720,
+      "portfolio": 36.28,
+      "eth_price": 2043.28,
+      "eth_pnl_pct": 0.4,
+      "cash": 1.01,
+      "actions": [
+        "holding ETH +0.5%, BTC +0.4%"
+      ],
+      "xrp": "Positions: ETH +0.5%, BTC +0.4%",
+      "regime": "extreme_fear"
     }
   ],
   "missed_opportunities": [
-    {
-      "time": "2026-03-30 21:22 UTC",
-      "asset": "BTC",
-      "reason": "Fully invested in SOL",
-      "signal": "+0.37% 1h | +0.47% 24h",
-      "price": 66844,
-      "est_gain_pct": 3.5,
-      "est_gain_usd": 1.22
-    },
-    {
-      "time": "2026-03-30 21:22 UTC",
-      "asset": "ETH",
-      "reason": "Fully invested in SOL",
-      "signal": "+0.73% 1h | +1.86% 24h",
-      "price": 2039.22,
-      "est_gain_pct": 3.5,
-      "est_gain_usd": 1.22
-    },
     {
       "time": "2026-03-30 21:22 UTC",
       "asset": "XRP",
@@ -6508,6 +6490,24 @@
       "reason": "Fully invested in ETH, BTC",
       "signal": "+0.77% 1h | +0.81% 24h",
       "price": 82.91,
+      "est_gain_pct": 5.0,
+      "est_gain_usd": 1.63
+    },
+    {
+      "time": "2026-03-31 01:21 UTC",
+      "asset": "XRP",
+      "reason": "Fully invested in ETH, BTC",
+      "signal": "+0.47% 1h | -0.68% 24h",
+      "price": 1.33,
+      "est_gain_pct": 5.0,
+      "est_gain_usd": 1.63
+    },
+    {
+      "time": "2026-03-31 01:21 UTC",
+      "asset": "SOL",
+      "reason": "Fully invested in ETH, BTC",
+      "signal": "+0.82% 1h | +0.84% 24h",
+      "price": 82.93,
       "est_gain_pct": 5.0,
       "est_gain_usd": 1.63
     }
