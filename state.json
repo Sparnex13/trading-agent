@@ -1,26 +1,14 @@
 {
   "positions": {
-    "ETH": {
-      "qty": 0.01629324,
-      "entry": 2022.31,
-      "stop_loss": 1975.190177,
-      "target": 2093.0908499999996,
-      "size_usd": 32.87,
-      "peak_price": 2022.79,
-      "order_id": "6987f0c8-2ba6-4e23-aa18-3bc94ff1d908",
-      "entry_time": 1774915534.6465476,
-      "current_price": 2017.7
-    },
-    "BTC": {
-      "qty": 3.988e-05,
-      "entry": 66694.49,
-      "stop_loss": 65140.50838300001,
-      "target": 69028.79715,
-      "size_usd": 2.65,
-      "peak_price": 66698,
-      "order_id": "c0a888bb-caba-4665-9cce-a406b12e58ce",
-      "entry_time": 1774915599.4644322,
-      "current_price": 66528
+    "SOL": {
+      "qty": 0.39081297,
+      "entry": 82.29,
+      "stop_loss": 80.37264300000001,
+      "target": 85.17015,
+      "size_usd": 32.55,
+      "peak_price": 82.29,
+      "order_id": "8b731834-95ce-4320-88e2-d09b5487f478",
+      "entry_time": 1774916419.0661335
     }
   },
   "trades": [
@@ -131,13 +119,52 @@
         "24h: +1.28%",
         "BTC $66,706"
       ]
+    },
+    {
+      "time": "2026-03-31 00:20 UTC",
+      "asset": "ETH",
+      "side": "SELL",
+      "qty": 0.01629324,
+      "entry": 2022.31,
+      "exit": 2020.9100000920628,
+      "sizeUsd": 32.87,
+      "pnl": -0.022810534499998248,
+      "reason": "ROTATION SELL: ROTATE: BTC (-0.26%, score=0.047) \u2192 SOL (score=0.352, edge=+0.305) | SOL 1h=+0.03% 24h=+1.00%",
+      "strategy_context": "Rotated out of ETH @ $2020.9100 into SOL | Held 0.2h | P&L $-0.023",
+      "signals": [
+        "F&G: 11/100"
+      ]
+    },
+    {
+      "time": "2026-03-31 00:20 UTC",
+      "asset": "BTC",
+      "side": "SELL",
+      "qty": 3.988e-05,
+      "entry": 66694.49,
+      "exit": 66555.84,
+      "sizeUsd": 2.65,
+      "pnl": -0.005529362000000348,
+      "reason": "ROTATION SELL: ROTATE: BTC (-0.26%, score=0.047) \u2192 SOL (score=0.352, edge=+0.305) | SOL 1h=+0.03% 24h=+1.00%",
+      "strategy_context": "Rotated out of BTC @ $66555.8400 into SOL | Held 0.2h | P&L $-0.006",
+      "signals": [
+        "F&G: 11/100"
+      ]
+    },
+    {
+      "time": "2026-03-31 00:20 UTC",
+      "asset": "SOL",
+      "side": "BUY",
+      "qty": 0.39081297,
+      "entry": 82.29,
+      "exit": null,
+      "sizeUsd": 32.55,
+      "pnl": null,
+      "reason": "ROTATION BUY: ROTATE: BTC (-0.26%, score=0.047) \u2192 SOL (score=0.352, edge=+0.305) | SOL 1h=+0.03% 24h=+1.00%",
+      "strategy_context": "Rotated into SOL @ $82.2900 | Stop $80.3726 (-2.3%) | Target $85.1702 (+3.5%)",
+      "signals": []
     }
   ],
   "balance_history": [
-    {
-      "time": "2026-03-30 11:49 UTC",
-      "value": 40.0911
-    },
     {
       "time": "2026-03-30 11:50 UTC",
       "value": 40.1154
@@ -3013,30 +3040,21 @@
     {
       "time": "2026-03-31 00:19 UTC",
       "value": 37.524
+    },
+    {
+      "time": "2026-03-31 00:20 UTC",
+      "value": 37.1751
     }
   ],
   "start_balance": 40.0,
   "day": 2,
-  "cash": 1.01,
+  "cash": 36.17,
   "scalp": {
     "trades_today": 0,
     "last_price": 1.32
   },
   "last_day": 2,
   "activity_log": [
-    {
-      "time": "2026-03-30 22:14 UTC",
-      "cycle": 720,
-      "portfolio": 38.52,
-      "eth_price": 2032.07,
-      "eth_pnl_pct": -0.93,
-      "cash": 1.01,
-      "actions": [
-        "holding SOL -1.5%, ETH -0.4%"
-      ],
-      "xrp": "Positions: SOL -1.5%, ETH -0.4%",
-      "regime": "extreme_fear"
-    },
     {
       "time": "2026-03-30 22:15 UTC",
       "cycle": 720,
@@ -4583,6 +4601,21 @@
         "holding ETH -0.2%, BTC -0.2%"
       ],
       "xrp": "Positions: ETH -0.2%, BTC -0.2%",
+      "regime": "extreme_fear"
+    },
+    {
+      "time": "2026-03-31 00:20 UTC",
+      "cycle": 720,
+      "portfolio": 37.18,
+      "eth_price": 2017.56,
+      "eth_pnl_pct": -0.02,
+      "cash": 36.17,
+      "actions": [
+        "\ud83d\udd04 Rotated ETH \u2192 SOL",
+        "\ud83d\udd04 Rotated BTC \u2192 SOL",
+        "\ud83d\udd04 Bought SOL @ $82.2900"
+      ],
+      "xrp": "Positions: SOL -0.0%",
       "regime": "extreme_fear"
     }
   ],
@@ -6392,5 +6425,5 @@
   "waiting_for_dip": false,
   "sniper_mode": true,
   "cashBalance": 37.01,
-  "last_rotation_time": 1774910447.7526155
+  "last_rotation_time": 1774916416.3028572
 }
