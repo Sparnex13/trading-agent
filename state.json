@@ -5,11 +5,11 @@
       "entry": 2034.11,
       "stop_loss": 1966.374137,
       "target": 2135.8155,
-      "size_usd": 31.61,
+      "size_usd": 31.6,
       "peak_price": 2083.36,
       "order_id": "63fed049-972a-475e-8f3a-6a9b28ddddd8",
       "entry_time": 1774918247.1083999,
-      "current_price": 2036.5
+      "current_price": 2036.27
     },
     "BTC": {
       "qty": 3.741e-05,
@@ -254,10 +254,6 @@
     }
   ],
   "balance_history": [
-    {
-      "time": "2026-03-30 23:00 UTC",
-      "value": 38.0681
-    },
     {
       "time": "2026-03-30 23:01 UTC",
       "value": 38.068
@@ -3133,6 +3129,10 @@
     {
       "time": "2026-03-31 11:32 UTC",
       "value": 36.1136
+    },
+    {
+      "time": "2026-03-31 11:33 UTC",
+      "value": 36.0949
     }
   ],
   "start_balance": 40.0,
@@ -3144,19 +3144,6 @@
   },
   "last_day": 3,
   "activity_log": [
-    {
-      "time": "2026-03-31 09:27 UTC",
-      "cycle": 720,
-      "portfolio": 35.92,
-      "eth_price": 2026.25,
-      "eth_pnl_pct": -0.69,
-      "cash": 1.01,
-      "actions": [
-        "holding ETH -0.4%, BTC -1.0%"
-      ],
-      "xrp": "Positions: ETH -0.4%, BTC -1.0%",
-      "regime": "extreme_fear"
-    },
     {
       "time": "2026-03-31 09:28 UTC",
       "cycle": 720,
@@ -4703,18 +4690,22 @@
       ],
       "xrp": "Positions: ETH +0.1%, BTC -0.7%",
       "regime": "extreme_fear"
+    },
+    {
+      "time": "2026-03-31 11:33 UTC",
+      "cycle": 720,
+      "portfolio": 36.09,
+      "eth_price": 2036.27,
+      "eth_pnl_pct": -0.3,
+      "cash": 1.01,
+      "actions": [
+        "holding ETH +0.1%, BTC -0.7%"
+      ],
+      "xrp": "Positions: ETH +0.1%, BTC -0.7%",
+      "regime": "extreme_fear"
     }
   ],
   "missed_opportunities": [
-    {
-      "time": "2026-03-31 02:03 UTC",
-      "asset": "SOL",
-      "reason": "Fully invested in ETH, BTC",
-      "signal": "+1.29% 1h | +1.32% 24h",
-      "price": 83.76,
-      "est_gain_pct": 3.5,
-      "est_gain_usd": 1.15
-    },
     {
       "time": "2026-03-31 02:04 UTC",
       "asset": "XRP",
@@ -6505,6 +6496,15 @@
       "price": 1.31,
       "est_gain_pct": 5.0,
       "est_gain_usd": 1.63
+    },
+    {
+      "time": "2026-03-31 11:33 UTC",
+      "asset": "XRP",
+      "reason": "Fully invested in ETH, BTC",
+      "signal": "+0.29% 1h | -2.67% 24h",
+      "price": 1.31,
+      "est_gain_pct": 5.0,
+      "est_gain_usd": 1.62
     }
   ],
   "last_sell_price": 2067.03,
