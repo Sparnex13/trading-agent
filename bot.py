@@ -219,10 +219,11 @@ def get_crypto_prices():
 SCALP_ASSET = "XRP-USD"
 SCALP_SYMBOL = "XRP"
 SCALP_ALLOC_USD = 5.0       # fixed $5 per scalp trade (small, frequent)
-SCALP_TARGET_PCT = 3.0      # take profit at +3.0% (net ~1.8% after 1.2% round-trip fees)
-SCALP_STOP_PCT = 1.5        # stop loss at -1.5% (net -2.7% after fees — 1.5:1 net ratio)
+SCALP_TARGET_PCT = 4.5      # take profit at +4.5% (net ~3.3% after 1.2% round-trip fees)
+SCALP_STOP_PCT = 1.5        # stop loss at -1.5% (net -2.7% after fees — 1.2:1 net ratio, BE ~45% WR)
 SCALP_ENTRY_MOVE_PCT = 0.5  # enter if XRP moved up >=0.5% since last check (reduce noise)
 SCALP_COOLDOWN_MINS = 5     # min minutes between scalp entries
+SCALP_TIME_STOP_MINS = 60   # force-exit any scalp open longer than 60 minutes (scalp ≠ bag hold)
 
 def check_scalp(state, prices, cash, total):
     """
@@ -256,6 +257,33 @@ def check_scalp(state, prices, cash, total):
     if pos:
         entry = pos["entry"]
         pnl_pct = (xrp_price - entry) / entry * 100
+        pos_age_mins = (time.time() - pos.get("entry_time", time.time())) / 60
+
+        # Time-stop: force-exit scalp that's been open too long (scalp ≠ bag hold)
+        if pos_age_mins >= SCALP_TIME_STOP_MINS:
+            qty_str = f"{pos['qty']:.2f}"
+            status, result = market_sell(SCALP_ASSET, qty_str)
+            if result.get("success"):
+                time.sleep(1)
+                order = get_order(result["success_response"]["order_id"])
+                exit_price = float(order.get("average_filled_price", xrp_price))
+                realized_pnl = (exit_price - entry) * pos["qty"]
+                scalp["position"] = None
+                if realized_pnl >= 0:
+                    scalp["wins"] += 1
+                else:
+                    scalp["losses"] += 1
+                scalp["trades_today"] += 1
+                state["trades"].append({
+                    "time": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+                    "asset": "XRP", "side": "SELL",
+                    "qty": pos["qty"], "entry": entry, "exit": exit_price,
+                    "sizeUsd": pos["size_usd"], "pnl": realized_pnl,
+                    "reason": f"SCALP TIME-STOP — held {pos_age_mins:.0f}min (limit: {SCALP_TIME_STOP_MINS}min) | P&L: {pnl_pct:+.2f}%",
+                    "strategy_context": f"XRP scalp time-stop | Entry ${entry:.4f} → Exit ${exit_price:.4f} | Age {pos_age_mins:.0f}min",
+                    "signals": [f"scalp", f"time-stop", f"XRP {pnl_pct:+.1f}%"]
+                })
+                return "sell", f"⏱️ XRP SCALP TIME-STOP @ ${exit_price:.4f} | {pnl_pct:+.2f}% | {pos_age_mins:.0f}min open"
 
         if pnl_pct >= SCALP_TARGET_PCT:
             # SELL — take profit
