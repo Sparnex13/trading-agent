@@ -248,22 +248,25 @@ def determine_strategy(fear_greed, avg_7d_fg, market_data, global_data, perf, st
 
     # ── Adjust take-profit based on regime ────────────────────────────────
     old_tp = strategy["take_profit_pct"]
+    # Goal: $40 → $1000 in 30 days requires ~13.5% daily compounding.
+    # MINIMUM take-profit floor is 8% regardless of regime — we cannot afford to
+    # exit positions early at 5% when we need 13%+ daily compounding to hit target.
     if "extreme_fear" in regime:
-        # In extreme fear: tighter take-profit (grab gains fast, market is volatile)
-        new_tp = 5.0
-        reasoning_parts.append("Extreme fear → tightening take-profit to 5% (high volatility, take gains fast)")
-    elif "fear" in regime and eth_7d < -5:
-        new_tp = 6.0
-        reasoning_parts.append("Fear + downtrend → take-profit 6% (cautious)")
-    elif "greed" in regime or (eth_7d > 10 and eth_24h > 2):
-        new_tp = 12.0
-        reasoning_parts.append("Greed/uptrend → widening take-profit to 12% (let winners run)")
-    elif "bull" in regime:
+        # Extreme fear = volatility = bigger swings available. Use trailing stop to lock gains.
         new_tp = 10.0
-        reasoning_parts.append("Bull regime → take-profit 10%")
-    else:
+        reasoning_parts.append("Extreme fear → TP=10% (volatility = bigger swings; use trailing stop, not early exit)")
+    elif "fear" in regime and eth_7d < -5:
         new_tp = 8.0
-        reasoning_parts.append("Neutral regime → standard take-profit 8%")
+        reasoning_parts.append("Fear + downtrend → take-profit 8% (floor for goal math)")
+    elif "greed" in regime or (eth_7d > 10 and eth_24h > 2):
+        new_tp = 15.0
+        reasoning_parts.append("Greed/uptrend → widening take-profit to 15% (let winners run hard)")
+    elif "bull" in regime:
+        new_tp = 12.0
+        reasoning_parts.append("Bull regime → take-profit 12%")
+    else:
+        new_tp = 10.0
+        reasoning_parts.append("Neutral regime → take-profit 10% (goal-adjusted floor)")
     
     if abs(new_tp - old_tp) >= 1:
         changes.append(f"take_profit: {old_tp}% → {new_tp}%")
@@ -273,11 +276,11 @@ def determine_strategy(fear_greed, avg_7d_fg, market_data, global_data, perf, st
     # Previously we set SL=7% then ratio-locked to 3.33% every single run — causing
     # 24+ identical log entries. Now SL is derived from TP directly: no oscillation.
     old_sl = strategy["stop_loss_pct"]
-    new_sl = round(strategy["take_profit_pct"] / 1.5, 2)
+    new_sl = round(strategy["take_profit_pct"] / 2.0, 2)  # 2:1 TP:SL ratio
     if abs(new_sl - old_sl) > 0.05:
-        changes.append(f"stop_loss: {old_sl}% → {new_sl}% (derived from TP/1.5)")
+        changes.append(f"stop_loss: {old_sl}% → {new_sl}% (derived from TP/2.0)")
         strategy["stop_loss_pct"] = new_sl
-        reasoning_parts.append(f"Stop-loss set to {new_sl}% (TP÷1.5 ratio maintained)")
+        reasoning_parts.append(f"Stop-loss set to {new_sl}% (TP÷2.0 ratio — 2:1 R:R maintained)")
 
     # ── Adjust momentum threshold ──────────────────────────────────────
     old_mom = strategy["momentum_threshold_1h"]

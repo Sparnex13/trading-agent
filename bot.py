@@ -28,8 +28,8 @@ def load_strategy():
     if os.path.exists(STRATEGY_FILE):
         with open(STRATEGY_FILE) as f:
             return json.load(f)
-    return {"take_profit_pct": 8.0, "stop_loss_pct": 10.0, "momentum_threshold_1h": 0.3,
-            "max_position_pct": 80.0, "preferred_asset": "ETH-USD"}
+    return {"take_profit_pct": 10.0, "stop_loss_pct": 5.0, "momentum_threshold_1h": 0.3,
+            "max_position_pct": 60.0, "preferred_asset": "ETH-USD"}
 
 # Position tracking (loaded from state file)
 DEFAULT_STATE = {
@@ -492,25 +492,31 @@ def should_rotate_position(state, prices, strategy):
         held_score = held_scores.get(sym, (0,))[0]
         alt_product_id, alt_sym, alt_score, alt_1h, alt_24h, alt_price = best_alt
 
-        # Rotation condition — conservative to avoid fee-burning churn:
-        # - Position clearly negative (>2% down) — not mildly negative
-        # - Strong score edge (>0.8) — meaningful signal divergence, not noise
-        # - Held at least 4 hours — give position time to work before cutting
-        # - 6-hour cooldown — each rotation burns ~2.4% round-trip in fees
+        # Rotation condition — strict to avoid fee-burning churn:
+        # - Position clearly losing (>3% down) — never rotate a winner or breakeven
+        # - Strong score edge (>1.2) — high conviction only, not noise
+        # - Held at least 6 hours — give position real time to work
+        # - 8-hour cooldown — each rotation burns ~1.2% round-trip in fees
         rotation_edge = alt_score - held_score
         held_hours = (time.time() - pos.get("entry_time", time.time())) / 3600
-        if pnl_pct < -2.0 and rotation_edge > 0.8 and held_hours >= 4.0:
+
+        # NEVER rotate a profitable or breakeven position — only cut losers
+        if pnl_pct >= 0:
+            continue
+
+        if pnl_pct < -3.0 and rotation_edge > 1.2 and held_hours >= 6.0:
             # Check rotation cooldown
             last_rotate = state.get("last_rotation_time", 0)
-            if time.time() - last_rotate < 21600:  # 6 hour cooldown
-                return False, None, None, f"Rotation cooldown ({int((10800 - (time.time()-last_rotate))/60)}min left)"
+            if time.time() - last_rotate < 28800:  # 8 hour cooldown
+                return False, None, None, f"Rotation cooldown ({int((28800 - (time.time()-last_rotate))/60)}min left)"
 
             reason = (f"ROTATE: {sym} ({pnl_pct:+.2f}%, score={held_score:.3f}) → "
                       f"{alt_sym} (score={alt_score:.3f}, edge={rotation_edge:+.3f}) | "
                       f"{alt_sym} 1h={alt_1h:+.2f}% 24h={alt_24h:+.2f}%")
-            return True, alt_product_id, alt_sym, reason
+            # Return which specific position to rotate out of
+            return True, alt_product_id, alt_sym, reason, sym
 
-    return False, None, None, "No rotation needed — position performing adequately"
+    return False, None, None, "No rotation needed — positions performing adequately", None
 
 def decide_next_trade(state, cash, prices, total_balance):
     """
@@ -703,9 +709,15 @@ def run_hourly():
             exit_reason = f"TAKE-PROFIT HIT — ${current_price:.4f} >= ${target:.4f} (+{pnl_pct:.1f}%)"
         elif pnl_pct >= tp_pct / 2 and pos.get("peak_price", 0) > 0:
             drawdown = (current_price - pos["peak_price"]) / pos["peak_price"] * 100
-            if drawdown < -2:
+            # Tighter trailing stop as gains increase: lock in more of the profit
+            # At 50% of TP: trail -1.5% from peak | At 75% of TP: trail -1.0% | At TP: hit target
+            if pnl_pct >= tp_pct * 0.75:
+                trail_threshold = -1.0
+            else:
+                trail_threshold = -1.5
+            if drawdown < trail_threshold:
                 should_exit = True
-                exit_reason = f"TRAILING EXIT — {pnl_pct:.1f}% up, reversing {drawdown:.1f}% from peak"
+                exit_reason = f"TRAILING EXIT — {pnl_pct:.1f}% up, reversing {drawdown:.1f}% from peak (trail threshold: {trail_threshold}%)"
 
         if should_exit:
             positions_to_close.append((sym, product_id, pos, current_price, exit_reason))
@@ -736,10 +748,12 @@ def run_hourly():
     # ── Rotation check — swap underperforming position for stronger signal ──
     if state["positions"] and not positions_to_close:
         strategy = load_strategy()
-        should_rotate, rot_product_id, rot_sym, rot_reason = should_rotate_position(state, prices, strategy)
+        should_rotate, rot_product_id, rot_sym, rot_reason, rot_from_sym = should_rotate_position(state, prices, strategy)
         if should_rotate:
-            # Sell current position first
+            # Only sell the specific underperforming position, not all positions
             for sym, pos in list(state["positions"].items()):
+                if sym != rot_from_sym:
+                    continue  # leave winning positions alone
                 product_id = f"{sym}-USD"
                 current_price = prices.get(sym, {}).get("price") or pos.get("current_price") or pos["entry"]
                 live_qty = live_positions.get(sym, {}).get("qty", pos["qty"])
