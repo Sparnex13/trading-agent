@@ -9,7 +9,7 @@
       "peak_price": 69170,
       "order_id": "2ed9196b-a105-4ab4-9f95-e1d4e6231bec",
       "entry_time": 1774918249.893681,
-      "current_price": 68513
+      "current_price": 68536
     },
     "ETH": {
       "qty": 0.00518841,
@@ -17,10 +17,10 @@
       "stop_loss": 2019.3316,
       "target": 2266.4526,
       "size_usd": 11.03,
-      "peak_price": 2126.54,
+      "peak_price": 2126.61,
       "order_id": "fb121563-5e15-4f27-b291-26119e8c0ef3",
       "entry_time": 1775052359.808504,
-      "current_price": 2125.46
+      "current_price": 2126.61
     },
     "SOL": {
       "qty": 0.13171202,
@@ -28,10 +28,10 @@
       "stop_loss": 79.18386666666667,
       "target": 88.8742,
       "size_usd": 10.96,
-      "peak_price": 83.19,
+      "peak_price": 83.23,
       "order_id": "daa4d3e8-e4d7-48b8-9f71-2dd5a0638d85",
       "entry_time": 1775054438.4684703,
-      "current_price": 83.19
+      "current_price": 83.23
     }
   },
   "trades": [
@@ -312,13 +312,26 @@
         "24h: +1.47%",
         "BTC $68,344"
       ]
+    },
+    {
+      "time": "2026-04-01 14:54 UTC",
+      "asset": "XRP",
+      "side": "BUY",
+      "qty": 3.641167,
+      "entry": 1.3569,
+      "exit": null,
+      "sizeUsd": 5.0,
+      "pnl": null,
+      "reason": "SCALP ENTRY \u2014 XRP moved +0.74% in last check (threshold: +0.5%)",
+      "strategy_context": "Micro-scalp: target +3.0% ($1.3773) | stop -1.5% ($1.3488)",
+      "signals": [
+        "scalp",
+        "move: +0.74%",
+        "XRP $1.3569"
+      ]
     }
   ],
   "balance_history": [
-    {
-      "time": "2026-04-01 02:13 UTC",
-      "value": 36.9802
-    },
     {
       "time": "2026-04-01 02:14 UTC",
       "value": 36.9459
@@ -3194,30 +3207,28 @@
     {
       "time": "2026-04-01 14:53 UTC",
       "value": 36.931
+    },
+    {
+      "time": "2026-04-01 14:54 UTC",
+      "value": 36.898
     }
   ],
   "start_balance": 40.0,
   "day": 4,
-  "cash": 11.31,
+  "cash": 6.31,
   "scalp": {
     "trades_today": 0,
-    "last_price": 1.35
+    "last_price": 1.36,
+    "position": {
+      "entry": 1.3569,
+      "qty": 3.641167,
+      "size_usd": 5.0,
+      "entry_time": 1775055276.520969
+    },
+    "last_entry_time": 1775055276.5209718
   },
   "last_day": 4,
   "activity_log": [
-    {
-      "time": "2026-04-01 12:45 UTC",
-      "cycle": 720,
-      "portfolio": 37.76,
-      "eth_price": 2126.88,
-      "eth_pnl_pct": 3.19,
-      "cash": 1.01,
-      "actions": [
-        "holding ETH +4.6%, BTC +1.8%"
-      ],
-      "xrp": "Positions: ETH +4.6%, BTC +1.8%",
-      "regime": "extreme_fear"
-    },
     {
       "time": "2026-04-01 12:46 UTC",
       "cycle": 720,
@@ -4764,18 +4775,22 @@
       ],
       "xrp": "Positions: BTC +2.1%, ETH +0.3%, SOL +0.2%",
       "regime": "extreme_fear"
+    },
+    {
+      "time": "2026-04-01 14:54 UTC",
+      "cycle": 720,
+      "portfolio": 36.9,
+      "eth_price": 2126.61,
+      "eth_pnl_pct": 0.92,
+      "cash": 6.31,
+      "actions": [
+        "\u26a1 XRP SCALP ENTRY @ $1.3569 | $5.00 | TP: $1.3773 | SL: $1.3488"
+      ],
+      "xrp": "Positions: BTC +2.2%, ETH +0.4%, SOL +0.2%",
+      "regime": "extreme_fear"
     }
   ],
   "missed_opportunities": [
-    {
-      "time": "2026-04-01 06:47 UTC",
-      "asset": "XRP",
-      "reason": "Fully invested in ETH, BTC",
-      "signal": "+1.37% 1h | +2.86% 24h",
-      "price": 1.36,
-      "est_gain_pct": 7.0,
-      "est_gain_usd": 0.8
-    },
     {
       "time": "2026-04-01 06:47 UTC",
       "asset": "SOL",
@@ -6564,6 +6579,15 @@
       "reason": "Fully invested in BTC, ETH, SOL",
       "signal": "+0.52% 1h | +2.47% 24h",
       "price": 1.35,
+      "est_gain_pct": 7.0,
+      "est_gain_usd": 0.78
+    },
+    {
+      "time": "2026-04-01 14:54 UTC",
+      "asset": "XRP",
+      "reason": "Fully invested in BTC, ETH, SOL",
+      "signal": "+0.55% 1h | +2.50% 24h",
+      "price": 1.36,
       "est_gain_pct": 7.0,
       "est_gain_usd": 0.78
     }
