@@ -570,11 +570,18 @@ def decide_next_trade(state, cash, prices, total_balance):
 
     if best_signal:
         product_id, sym, sc, change_1h, change_24h, price = best_signal
-        # If we already have a position, this is a second position with smaller size
-        if held:
-            trade_usd = round(min(cash * 0.90, cash - 1.0), 2)  # leave $1 buffer
+        # Position sizing: each slot gets ~30% of total portfolio, leaving ~10% cash reserve
+        # Slot 1 (no existing positions): up to 60% of total
+        # Slot 2+: up to 30% of total, but also capped by available cash minus $2 reserve
+        CASH_RESERVE = max(2.0, total_balance * 0.10)  # keep 10% as reserve, min $2
+        if not held:
+            # First position: up to 60% of portfolio
+            max_alloc = round(total_balance * 0.60, 2)
+            trade_usd = round(min(cash - CASH_RESERVE, max_alloc), 2)
         else:
-            trade_usd = round(cash * 0.90, 2)
+            # 2nd/3rd position: up to 30% of portfolio each
+            max_alloc = round(total_balance * 0.30, 2)
+            trade_usd = round(min(cash - CASH_RESERVE, max_alloc), 2)
         trade_usd = max(2.0, trade_usd)
         return (product_id, trade_usd), best_reason
 
@@ -810,7 +817,8 @@ def run_hourly():
                     "signal": f"{move_1h:+.2f}% 1h | {move_24h:+.2f}% 24h",
                     "price": data.get("price", 0),
                     "est_gain_pct": strategy["take_profit_pct"],
-                    "est_gain_usd": round(total * 0.9 * strategy["take_profit_pct"] / 100, 2)
+                    # Estimate based on a 30% slot allocation (realistic per-position sizing)
+                    "est_gain_usd": round(total * 0.30 * strategy["take_profit_pct"] / 100, 2)
                 })
 
     # ── XRP Scalp Layer ──
@@ -834,8 +842,8 @@ def run_hourly():
         time.sleep(1)
         total, cash, live_positions = get_portfolio()
 
-    # ── Check entry conditions (new position OR deploy idle cash into 2nd position) ──
-    max_positions = 2  # allow up to 2 simultaneous positions
+    # ── Check entry conditions (new position OR deploy idle cash into 2nd/3rd position) ──
+    max_positions = 3  # allow up to 3 simultaneous positions (~30% each, 10% cash reserve)
     if len(state["positions"]) < max_positions:
         trade_signal, signal_reason = decide_next_trade(state, cash, prices, total)
         if trade_signal:
