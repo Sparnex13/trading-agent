@@ -51,10 +51,15 @@ def make_jwt(method, path):
     return jwt.encode(payload, private_key, algorithm="ES256",
                       headers={"kid": KEY_NAME, "nonce": secrets.token_hex(16)})
 
-def cb_get(path):
-    token = make_jwt("GET", path)
+def cb_get(path, params=None):
+    # Strip query string from path for JWT signing (JWT uri must be path only)
+    path_for_jwt = path.split("?")[0]
+    token = make_jwt("GET", path_for_jwt)
     r = requests.get(f"https://api.coinbase.com{path}",
-                     headers={"Authorization": f"Bearer {token}"}, timeout=10)
+                     headers={"Authorization": f"Bearer {token}"},
+                     params=params, timeout=10)
+    if not r.text:
+        return {}
     return r.json()
 
 def cb_post(path, body):
@@ -409,6 +414,117 @@ def should_sell_eth(state, current_price):
 
     return False, None
 
+def fetch_candles(sym, granularity="ONE_HOUR", limit=24):
+    """
+    Fetch OHLCV candles from Coinbase for a given symbol.
+    Returns list of dicts with open/high/low/close/volume, newest first.
+    """
+    product_id = f"{sym}-USD"
+    try:
+        data = cb_get(f"/api/v3/brokerage/products/{product_id}/candles",
+                      params={"granularity": granularity, "limit": str(limit)})
+        candles = data.get("candles", [])
+        return [{"open": float(c["open"]), "high": float(c["high"]),
+                 "low": float(c["low"]), "close": float(c["close"]),
+                 "volume": float(c["volume"]), "start": int(c["start"])}
+                for c in candles]
+    except Exception:
+        return []
+
+def calc_rsi(closes, period=14):
+    """Calculate RSI from a list of closes (oldest first)."""
+    if len(closes) < period + 1:
+        return 50  # neutral if not enough data
+    gains, losses = [], []
+    for i in range(1, len(closes)):
+        delta = closes[i] - closes[i-1]
+        gains.append(max(delta, 0))
+        losses.append(max(-delta, 0))
+    avg_gain = sum(gains[-period:]) / period
+    avg_loss = sum(losses[-period:]) / period
+    if avg_loss == 0:
+        return 100
+    rs = avg_gain / avg_loss
+    return round(100 - 100 / (1 + rs), 1)
+
+def get_ta_signals(sym):
+    """
+    Fetch candles and compute RSI, volume trend, support/resistance proximity.
+    Returns dict with ta_score bonus (+/-), rsi, vol_trend, notes.
+    """
+    candles = fetch_candles(sym, granularity="ONE_HOUR", limit=48)
+    if len(candles) < 15:
+        return {"ta_score": 0, "rsi": None, "notes": "no candle data"}
+
+    # Candles are newest-first from Coinbase — reverse for calculations
+    candles_asc = list(reversed(candles))
+    closes = [c["close"] for c in candles_asc]
+    volumes = [c["volume"] for c in candles_asc]
+    highs = [c["high"] for c in candles_asc]
+    lows = [c["low"] for c in candles_asc]
+
+    rsi = calc_rsi(closes)
+    current_price = closes[-1]
+
+    # Volume trend: is current volume above 20h average?
+    avg_vol = sum(volumes[-20:]) / min(20, len(volumes))
+    vol_ratio = volumes[-1] / avg_vol if avg_vol > 0 else 1.0
+    vol_trending = vol_ratio > 1.2  # 20% above average = confirmation
+
+    # Resistance proximity: is price near a recent 24h high? (potential ceiling)
+    recent_high = max(highs[-24:]) if len(highs) >= 24 else max(highs)
+    recent_low = min(lows[-24:]) if len(lows) >= 24 else min(lows)
+    pct_from_high = (recent_high - current_price) / recent_high * 100
+    pct_from_low = (current_price - recent_low) / recent_low * 100
+
+    # Score adjustments
+    ta_score = 0.0
+    notes = []
+
+    # RSI signals
+    if rsi < 35:
+        ta_score += 0.3  # oversold — bounce potential
+        notes.append(f"RSI {rsi} oversold ↑")
+    elif rsi > 70:
+        ta_score -= 0.3  # overbought — caution
+        notes.append(f"RSI {rsi} overbought ↓")
+    elif 40 <= rsi <= 60:
+        ta_score += 0.1  # healthy mid-range momentum
+        notes.append(f"RSI {rsi} healthy")
+    else:
+        notes.append(f"RSI {rsi}")
+
+    # Volume confirmation
+    if vol_trending:
+        ta_score += 0.2
+        notes.append(f"vol {vol_ratio:.1f}x avg ↑")
+    else:
+        notes.append(f"vol {vol_ratio:.1f}x avg")
+
+    # Near resistance ceiling — penalise (little upside room)
+    if pct_from_high < 0.5:
+        ta_score -= 0.2
+        notes.append(f"near 24h high (-{pct_from_high:.1f}%) ↓")
+    elif pct_from_high > 3:
+        ta_score += 0.1
+        notes.append(f"room to {pct_from_high:.1f}% below high ↑")
+
+    # Momentum: last 3 candles trending up?
+    if len(closes) >= 4 and closes[-1] > closes[-2] > closes[-3]:
+        ta_score += 0.15
+        notes.append("3-candle uptrend ↑")
+    elif len(closes) >= 3 and closes[-1] < closes[-2] < closes[-3]:
+        ta_score -= 0.15
+        notes.append("3-candle downtrend ↓")
+
+    return {
+        "ta_score": round(ta_score, 3),
+        "rsi": rsi,
+        "vol_ratio": round(vol_ratio, 2),
+        "pct_from_high": round(pct_from_high, 2),
+        "notes": " | ".join(notes)
+    }
+
 def score_signal(change_1h, change_24h, volume=0):
     """
     Weighted signal score combining 1h momentum, 24h trend alignment, and volume.
@@ -449,7 +565,10 @@ def scan_sniper_targets(prices):
         volume = data.get("volume") or 0
         if price > 0:
             sc = score_signal(change_1h, change_24h, volume)
-            candidates.append((product_id, sym, sc, change_1h, change_24h, price))
+            # Augment score with technical analysis from Coinbase candles
+            ta = get_ta_signals(sym)
+            sc_final = sc + ta["ta_score"]
+            candidates.append((product_id, sym, sc_final, change_1h, change_24h, price, ta))
     # Sort by composite score descending
     candidates.sort(key=lambda x: x[2], reverse=True)
     return candidates
@@ -476,7 +595,8 @@ def should_rotate_position(state, prices, strategy):
     held_scores = {}
     best_alt = None
 
-    for product_id, sym, sc, c1h, c24h, price in candidates:
+    for item in candidates:
+        product_id, sym, sc, c1h, c24h, price = item[0], item[1], item[2], item[3], item[4], item[5]
         if sym in held:
             held_scores[sym] = (sc, c1h, c24h)
         elif best_alt is None and sc > 0:
@@ -540,8 +660,10 @@ def decide_next_trade(state, cash, prices, total_balance):
     best_reason = None
     all_considered = []
 
-    for product_id, sym, sc, change_1h, change_24h, price in candidates:
-        all_considered.append(f"{sym}: {change_1h:+.2f}%1h score={sc:.2f}")
+    for item in candidates:
+        product_id, sym, sc, change_1h, change_24h, price = item[0], item[1], item[2], item[3], item[4], item[5]
+        ta = item[6] if len(item) > 6 else {}
+        all_considered.append(f"{sym}: {change_1h:+.2f}%1h score={sc:.2f} RSI={ta.get('rsi','?')}")
 
         # Skip assets we're already holding
         if sym in held:
@@ -561,21 +683,23 @@ def decide_next_trade(state, cash, prices, total_balance):
 
         if change_1h >= threshold:
             if best_signal is None:
-                best_signal = (product_id, sym, sc, change_1h, change_24h, price)
-                best_reason = f"🎯 SNIPER v2: {sym} score={sc:.3f} | 1h={change_1h:+.2f}% 24h={change_24h:+.2f}% | vs {', '.join(all_considered)}"
+                best_signal = (product_id, sym, sc, change_1h, change_24h, price, ta)
+                best_reason = (f"🎯 SNIPER v2: {sym} score={sc:.3f} | 1h={change_1h:+.2f}% 24h={change_24h:+.2f}% "
+                               f"| RSI={ta.get('rsi','?')} vol={ta.get('vol_ratio','?')}x | {ta.get('notes','')}")
         else:
             if change_1h > 0:
                 state.setdefault("missed_opportunities", []).append({
                     "time": ts, "asset": sym,
                     "reason": f"Below threshold ({change_1h:+.2f}% < {threshold}%)",
-                    "signal": f"{change_1h:+.2f}% 1h | score={sc:.2f}",
+                    "signal": f"{change_1h:+.2f}% 1h | score={sc:.2f} | RSI={ta.get('rsi','?')}",
                     "price": price,
                     "est_gain_pct": strategy["take_profit_pct"],
                     "est_gain_usd": round(cash * 0.9 * strategy["take_profit_pct"] / 100, 2)
                 })
 
     if best_signal:
-        product_id, sym, sc, change_1h, change_24h, price = best_signal
+        product_id, sym, sc, change_1h, change_24h, price = best_signal[0], best_signal[1], best_signal[2], best_signal[3], best_signal[4], best_signal[5]
+        ta = best_signal[6] if len(best_signal) > 6 else {}
         # Position sizing: each slot gets ~30% of total portfolio, leaving ~10% cash reserve
         # Slot 1 (no existing positions): up to 60% of total
         # Slot 2+: up to 30% of total, but also capped by available cash minus $2 reserve
