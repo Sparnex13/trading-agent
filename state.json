@@ -333,10 +333,6 @@
   ],
   "balance_history": [
     {
-      "time": "2026-04-01 08:03 UTC",
-      "value": 37.7024
-    },
-    {
       "time": "2026-04-01 08:04 UTC",
       "value": 37.7229
     },
@@ -3211,6 +3207,10 @@
     {
       "time": "2026-04-01 21:13 UTC",
       "value": 36.759
+    },
+    {
+      "time": "2026-04-01 21:13 UTC",
+      "value": 36.7573
     }
   ],
   "start_balance": 40.0,
@@ -3229,19 +3229,6 @@
   },
   "last_day": 4,
   "activity_log": [
-    {
-      "time": "2026-04-01 19:31 UTC",
-      "cycle": 720,
-      "portfolio": 37.0,
-      "eth_price": 2138.66,
-      "eth_pnl_pct": 1.28,
-      "cash": 6.31,
-      "actions": [
-        "holding BTC +1.7%, ETH +1.0%, SOL +1.2%"
-      ],
-      "xrp": "Positions: BTC +1.7%, ETH +1.0%, SOL +1.2%",
-      "regime": "extreme_fear"
-    },
     {
       "time": "2026-04-01 19:32 UTC",
       "cycle": 720,
@@ -4788,18 +4775,22 @@
       ],
       "xrp": "Positions: BTC +1.8%, ETH +1.6%, SOL -0.5%",
       "regime": "extreme_fear"
+    },
+    {
+      "time": "2026-04-01 21:13 UTC",
+      "cycle": 720,
+      "portfolio": 36.76,
+      "eth_price": 2152.43,
+      "eth_pnl_pct": 0.97,
+      "cash": 11.16,
+      "actions": [
+        "holding BTC +1.8%, ETH +1.6%, SOL -0.5%"
+      ],
+      "xrp": "Positions: BTC +1.8%, ETH +1.6%, SOL -0.5%",
+      "regime": "extreme_fear"
     }
   ],
   "missed_opportunities": [
-    {
-      "time": "2026-04-01 11:56 UTC",
-      "asset": "XRP",
-      "reason": "Fully invested in ETH, BTC",
-      "signal": "+0.20% 1h | +3.10% 24h",
-      "price": 1.35,
-      "est_gain_pct": 10.0,
-      "est_gain_usd": 1.13
-    },
     {
       "time": "2026-04-01 11:57 UTC",
       "asset": "XRP",
@@ -6578,6 +6569,15 @@
       "asset": "XRP",
       "reason": "Fully invested in BTC, ETH, SOL",
       "signal": "+0.23% 1h | +0.86% 24h",
+      "price": 1.35,
+      "est_gain_pct": 10.0,
+      "est_gain_usd": 1.1
+    },
+    {
+      "time": "2026-04-01 21:13 UTC",
+      "asset": "XRP",
+      "reason": "Fully invested in BTC, ETH, SOL",
+      "signal": "+0.26% 1h | +0.88% 24h",
       "price": 1.35,
       "est_gain_pct": 10.0,
       "est_gain_usd": 1.1
