@@ -9,18 +9,28 @@
       "peak_price": 69170,
       "order_id": "2ed9196b-a105-4ab4-9f95-e1d4e6231bec",
       "entry_time": 1774918249.893681,
-      "current_price": 66828
+      "current_price": 66857
     },
     "ETH": {
       "qty": 0.00518841,
       "entry": 2118.18,
       "stop_loss": 2012.2709999999997,
       "target": 2329.998,
-      "size_usd": 10.75,
+      "size_usd": 10.76,
       "peak_price": 2163.13,
       "order_id": "fb121563-5e15-4f27-b291-26119e8c0ef3",
       "entry_time": 1775052359.808504,
-      "current_price": 2071.5
+      "current_price": 2073.03
+    },
+    "SOL": {
+      "qty": 0.13352703,
+      "entry": 79.16,
+      "stop_loss": 75.202,
+      "target": 87.07600000000001,
+      "size_usd": 10.7,
+      "peak_price": 79.16,
+      "order_id": "4c2d8dca-6643-4889-97db-045cd20062b7",
+      "entry_time": 1775100366.9192526
     }
   },
   "trades": [
@@ -334,13 +344,26 @@
         "F&G: 12/100",
         "BTC $66,846"
       ]
+    },
+    {
+      "time": "2026-04-02 03:26 UTC",
+      "asset": "SOL",
+      "side": "BUY",
+      "qty": 0.13352703,
+      "entry": 79.16,
+      "exit": null,
+      "sizeUsd": 10.7,
+      "pnl": null,
+      "reason": "\ud83c\udfaf SNIPER v2: SOL score=0.124 | 1h=+0.29% 24h=-5.01% | RSI=33.9 vol=0.21x | RSI 33.9 oversold \u2191 | vol 0.2x avg | room to 8.6% below high \u2191",
+      "strategy_context": "SNIPER: SOL @ $79.1600 | 1h: +0.29% | Stop: $75.2020 (-5.0%) | Target: $87.0760 (+10.0%) | Deployed: $10.70 (30% of portfolio)",
+      "signals": [
+        "1h: +0.29%",
+        "24h: -5.01%",
+        "BTC $66,857"
+      ]
     }
   ],
   "balance_history": [
-    {
-      "time": "2026-04-01 15:13 UTC",
-      "value": 36.8119
-    },
     {
       "time": "2026-04-01 15:14 UTC",
       "value": 36.8002
@@ -3216,6 +3239,10 @@
     {
       "time": "2026-04-02 03:25 UTC",
       "value": 35.6633
+    },
+    {
+      "time": "2026-04-02 03:26 UTC",
+      "value": 35.6615
     }
   ],
   "start_balance": 40.0,
@@ -3234,19 +3261,6 @@
   },
   "last_day": 4,
   "activity_log": [
-    {
-      "time": "2026-04-02 02:20 UTC",
-      "cycle": 720,
-      "portfolio": 35.71,
-      "eth_price": 2085.39,
-      "eth_pnl_pct": -0.87,
-      "cash": 21.4,
-      "actions": [
-        "holding BTC -0.2%, ETH -1.5%"
-      ],
-      "xrp": "Positions: BTC -0.2%, ETH -1.5%",
-      "regime": "extreme_fear"
-    },
     {
       "time": "2026-04-02 02:21 UTC",
       "cycle": 720,
@@ -4793,18 +4807,22 @@
       ],
       "xrp": "Positions: BTC -0.4%, ETH -2.2%",
       "regime": "extreme_fear"
+    },
+    {
+      "time": "2026-04-02 03:26 UTC",
+      "cycle": 720,
+      "portfolio": 35.66,
+      "eth_price": 2073.03,
+      "eth_pnl_pct": -0.93,
+      "cash": 21.4,
+      "actions": [
+        "\ud83c\udfaf Sniper buy: 0.133527 SOL @ $79.1600"
+      ],
+      "xrp": "Positions: BTC -0.4%, ETH -2.1%, SOL -0.3%",
+      "regime": "extreme_fear"
     }
   ],
   "missed_opportunities": [
-    {
-      "time": "2026-04-01 16:12 UTC",
-      "asset": "XRP",
-      "reason": "Fully invested in BTC, ETH, SOL",
-      "signal": "+0.13% 1h | +2.91% 24h",
-      "price": 1.35,
-      "est_gain_pct": 7.0,
-      "est_gain_usd": 0.77
-    },
     {
       "time": "2026-04-01 16:16 UTC",
       "asset": "XRP",
@@ -6595,6 +6613,15 @@
       "price": 78.9013465128966,
       "est_gain_pct": 10.0,
       "est_gain_usd": 1.93
+    },
+    {
+      "time": "2026-04-02 03:26 UTC",
+      "asset": "SOL",
+      "reason": "Fully invested in BTC, ETH",
+      "signal": "+0.29% 1h | -5.01% 24h",
+      "price": 78.92,
+      "est_gain_pct": 10.0,
+      "est_gain_usd": 1.07
     }
   ],
   "last_sell_price": 2067.03,
