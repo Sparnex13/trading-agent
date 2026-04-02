@@ -352,26 +352,36 @@ def determine_strategy(fear_greed, avg_7d_fg, market_data, global_data, perf, st
         strategy["adjustments_log"] = strategy["adjustments_log"][-48:]
 
     # ── Glint macro signal override ───────────────────────────────────────
-    # If Glint has a strong bullish signal (Fed rate cut etc.), extend take-profit
+    # If Glint has a strong bullish/bearish signal, adjust take-profit.
+    # Debounced: only re-apply if glint_score has changed since last run (avoids
+    # the base-TP-reset → GLINT-cut → base-TP-reset oscillation every hour).
     glint_score = kwargs.get("glint_score", 0)
+    prev_glint_score = strategy.get("glint_score", 0)
+    strategy["glint_score"] = glint_score  # persist for debounce next run
+    glint_changed = abs(glint_score - prev_glint_score) >= 0.1
     if glint_score >= 0.5:
         old_tp = strategy["take_profit_pct"]
         new_tp = min(old_tp * 1.5, 15.0)  # boost take-profit by 50%, cap at 15%
-        if new_tp > old_tp + 1:
+        if new_tp > old_tp + 1 and glint_changed:
             changes.append(f"take_profit GLINT BOOST: {old_tp}% → {new_tp:.1f}% (macro bullish signal)")
             strategy["take_profit_pct"] = new_tp
             reasoning_parts.append(f"Glint macro signal bullish ({glint_score:+.1f}) → extending take-profit to {new_tp:.1f}%")
+        elif new_tp > old_tp + 1:
+            # Apply silently (no log entry) — glint hasn't changed, just re-applying stable override
+            strategy["take_profit_pct"] = new_tp
     elif glint_score <= -0.5:
         old_tp = strategy["take_profit_pct"]
-        new_tp = max(old_tp * 0.7, 4.5)  # shrink take-profit, take gains fast — floor 4.5% (covers fees + needs viable edge)
+        new_tp = max(old_tp * 0.7, 4.5)  # shrink take-profit, take gains fast — floor 4.5%
         if new_tp < old_tp - 0.5:
-            # Always co-adjust SL to maintain 1.5:1 TP:SL ratio — eliminates bot.py ratio-fixer oscillation
+            # Always co-adjust SL to maintain 1.5:1 TP:SL ratio
             new_sl = round(new_tp / 1.5, 2)
-            changes.append(f"take_profit GLINT CUT: {old_tp}% → {new_tp:.1f}% (macro bearish signal)")
-            changes.append(f"stop_loss GLINT CO-ADJUST: {strategy['stop_loss_pct']}% → {new_sl}% (TP:SL ratio lock 1.5:1)")
+            if glint_changed:
+                changes.append(f"take_profit GLINT CUT: {old_tp}% → {new_tp:.1f}% (macro bearish signal)")
+                changes.append(f"stop_loss GLINT CO-ADJUST: {strategy['stop_loss_pct']}% → {new_sl}% (TP:SL ratio lock 1.5:1)")
+                reasoning_parts.append(f"Glint macro signal bearish ({glint_score:+.1f}) → tightening take-profit to {new_tp:.1f}%, SL to {new_sl}%")
+            # Always apply the override regardless (keeps values consistent), just don't spam the log
             strategy["take_profit_pct"] = new_tp
             strategy["stop_loss_pct"] = new_sl
-            reasoning_parts.append(f"Glint macro signal bearish ({glint_score:+.1f}) → tightening take-profit to {new_tp:.1f}%, SL to {new_sl}%")
 
     # ── Final ratio lock: enforce TP:SL ≥ 1.5:1 after all adjustments ──
     # This prevents bot.py from needing to correct the ratio every minute

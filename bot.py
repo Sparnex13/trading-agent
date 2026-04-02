@@ -612,11 +612,11 @@ def should_rotate_position(state, prices, strategy):
     Returns (True, product_id, sym, reason) or (False, None, None, reason)
     """
     if not state["positions"]:
-        return False, None, None, "No positions to rotate"
+        return False, None, None, "No positions to rotate", None
 
     candidates = scan_sniper_targets(prices)
     if not candidates:
-        return False, None, None, "No price data"
+        return False, None, None, "No price data", None
 
     # Find best alternative (not currently held)
     held = set(state["positions"].keys())
@@ -631,7 +631,7 @@ def should_rotate_position(state, prices, strategy):
             best_alt = (product_id, sym, sc, c1h, c24h, price)
 
     if not best_alt or not held_scores:
-        return False, None, None, "No rotation candidate found"
+        return False, None, None, "No rotation candidate found", None
 
     # Check if current position is underperforming
     for sym, pos in state["positions"].items():
@@ -656,7 +656,7 @@ def should_rotate_position(state, prices, strategy):
             # Check rotation cooldown
             last_rotate = state.get("last_rotation_time", 0)
             if time.time() - last_rotate < 28800:  # 8 hour cooldown
-                return False, None, None, f"Rotation cooldown ({int((28800 - (time.time()-last_rotate))/60)}min left)"
+                return False, None, None, f"Rotation cooldown ({int((28800 - (time.time()-last_rotate))/60)}min left)", None
 
             reason = (f"ROTATE: {sym} ({pnl_pct:+.2f}%, score={held_score:.3f}) → "
                       f"{alt_sym} (score={alt_score:.3f}, edge={rotation_edge:+.3f}) | "
