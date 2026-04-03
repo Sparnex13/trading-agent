@@ -679,19 +679,27 @@ def should_rotate_position(state, prices, strategy):
         if pnl_pct >= 0:
             continue
 
-        # Each rotation burns ~0.8-1.2% in round-trip fees — need strong conviction:
-        # - Position must be down >5% (significant loss, not noise)
-        # - Alternative must have score edge > 2.0 (high conviction, not statistical noise)
-        # - Held at least 10 hours (give position real time to work)
-        if pnl_pct < -5.0 and rotation_edge > 2.0 and held_hours >= 10.0:
+        # Each rotation burns ~0.8-1.2% in round-trip fees — need STRONG conviction:
+        # - Position must be down >8% (deep loss, not noise — current SL is ~3.5-5%)
+        # - Alternative must have score edge > 3.0 (massive dislocation, not noise)
+        # - Held at least 3 hours (give position real time to work)
+        # - Total positions must exceed 1 (only rotate the LAST position, not the anchor)
+        if pnl_pct < -8.0 and rotation_edge > 3.0 and held_hours >= 3.0:
             # Check rotation cooldown
             last_rotate = state.get("last_rotation_time", 0)
             if time.time() - last_rotate < 28800:  # 8 hour cooldown
                 return False, None, None, f"Rotation cooldown ({int((28800 - (time.time()-last_rotate))/60)}min left)", None
 
+            # Daily rotation cap: max 1 rotation per day (we burned through $0.57 in fees)
+            today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            state.setdefault("rotation_by_day", {})
+            if state["rotation_by_day"].get(today, 0) >= 1:
+                return False, None, None, f"Daily rotation limit reached (1/day)", None
+
             reason = (f"ROTATE: {sym} ({pnl_pct:+.2f}%, score={held_score:.3f}) → "
                       f"{alt_sym} (score={alt_score:.3f}, edge={rotation_edge:+.3f}) | "
                       f"{alt_sym} 1h={alt_1h:+.2f}% 24h={alt_24h:+.2f}%")
+            state["rotation_by_day"][today] = state["rotation_by_day"].get(today, 0) + 1
             # Return which specific position to rotate out of
             return True, alt_product_id, alt_sym, reason, sym
 
@@ -834,29 +842,22 @@ def run_hourly():
 
     actions_taken = []
 
-    # ── Safety: Enforce TP:SL ratio ≥ 2.0:1 ──
-    # Only writes to strategy.json ONCE per run when correction needed.
-    # No adjustment_log spam — external research script will see the new values.
-    import json as _json
+    # ── Fee drag sanity check ──
+    # NOTE: TP:SL ratio adjustments are handled by external research script.
+    # Do NOT override stop_loss here — the oscillation loop (38+ writes/run)
+    # was fighting the script's GLINT-based adjustments.
     strategy_changed = False
     strategy = load_strategy()
-    tp = strategy.get("take_profit_pct", 5.0)
-    MIN_RATIO = 2.0
-    sl = strategy.get("stop_loss_pct", 7.0)
-    ratio = tp / sl if sl > 0 else 0
-    if ratio < MIN_RATIO:
-        corrected_sl = round(tp / MIN_RATIO, 2)
-        strategy["stop_loss_pct"] = corrected_sl
-        strategy_changed = True
-
-    # ── Fee drag sanity check ──
     if strategy.get("take_profit_pct", 0) < 3.0:
         strategy["take_profit_pct"] = 5.0
         strategy_changed = True
-
-    if strategy_changed:
+    # De-dup guard: only write if something actually changed AND we haven't written this run already
+    if strategy_changed and not state.get("strategy_written_this_run", False):
         with open(STRATEGY_FILE, "w") as f:
             _json.dump(strategy, f, indent=2)
+        state["strategy_written_this_run"] = True
+    else:
+        state["strategy_written_this_run"] = False
 
     # ── Check exit conditions (all open positions) ──
     positions_to_close = []
