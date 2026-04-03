@@ -268,18 +268,23 @@ def determine_strategy(fear_greed, avg_7d_fg, market_data, global_data, perf, st
         new_tp = 10.0
         reasoning_parts.append("Neutral regime → take-profit 10% (goal-adjusted floor)")
     
-    if abs(new_tp - old_tp) >= 1:
+    # Apply TP change only on significant shift (≥1%) or very first run
+    if abs(new_tp - old_tp) >= 1.0:
         changes.append(f"take_profit: {old_tp}% → {new_tp}%")
         strategy["take_profit_pct"] = new_tp
+    elif abs(new_tp - old_tp) >= 0.01:
+        # Small drift (e.g., glint residual) — silently snap to regime target, no log
+        strategy["take_profit_pct"] = new_tp
 
-    # ── Adjust stop-loss: always derived from TP to maintain 1.5:1 ratio ──
-    # Previously we set SL=7% then ratio-locked to 3.33% every single run — causing
-    # 24+ identical log entries. Now SL is derived from TP directly: no oscillation.
+    # ── Adjust stop-loss: always derived from TP to maintain 2:1 ratio ──
+    # DEBOUNCED: only log changes if they actually move the value.
+    # We always SET the SL to maintain the ratio, but only LOG when it changes.
     old_sl = strategy["stop_loss_pct"]
     new_sl = round(strategy["take_profit_pct"] / 2.0, 2)  # 2:1 TP:SL ratio
+    # Always apply the derived SL — this keeps the ratio correct
+    strategy["stop_loss_pct"] = new_sl
     if abs(new_sl - old_sl) > 0.05:
         changes.append(f"stop_loss: {old_sl}% → {new_sl}% (derived from TP/2.0)")
-        strategy["stop_loss_pct"] = new_sl
         reasoning_parts.append(f"Stop-loss set to {new_sl}% (TP÷2.0 ratio — 2:1 R:R maintained)")
 
     # ── Adjust momentum threshold ──────────────────────────────────────
@@ -341,13 +346,28 @@ def determine_strategy(fear_greed, avg_7d_fg, market_data, global_data, perf, st
     strategy["last_updated"] = now
     strategy["reasoning"] = " | ".join(reasoning_parts)
 
-    if changes:
-        strategy["adjustments_log"].append({
-            "time": now,
-            "changes": changes,
-            "regime": regime,
-            "fear_greed": fear_greed
-        })
+    # Only log actual changes — no empty or near-empty entries
+    if len(changes) >= 1:
+        # Debounce: skip if this exact change set was logged in the last run
+        prev = strategy.get("adjustments_log", [])
+        if prev:
+            last_changes = prev[-1].get("changes", [])
+            if changes == last_changes:
+                pass  # Skip duplicate — same adjustments as last run
+            else:
+                strategy["adjustments_log"].append({
+                    "time": now,
+                    "changes": changes,
+                    "regime": regime,
+                    "fear_greed": fear_greed
+                })
+        else:
+            strategy["adjustments_log"].append({
+                "time": now,
+                "changes": changes,
+                "regime": regime,
+                "fear_greed": fear_greed
+            })
         # Keep last 48 adjustments
         strategy["adjustments_log"] = strategy["adjustments_log"][-48:]
 
@@ -383,15 +403,16 @@ def determine_strategy(fear_greed, avg_7d_fg, market_data, global_data, perf, st
             strategy["take_profit_pct"] = new_tp
             strategy["stop_loss_pct"] = new_sl
 
-    # ── Final ratio lock: enforce TP:SL ≥ 1.5:1 after all adjustments ──
-    # This prevents bot.py from needing to correct the ratio every minute
+    # ── Final ratio lock: enforce TP:SL ≥ 2:1 after all adjustments ──
+    # Since SL is already derived from TP/2.0 above, this should be a no-op
+    # unless GLINT or something else mutated the ratio. Guard belt.
     final_tp = strategy["take_profit_pct"]
     final_sl = strategy["stop_loss_pct"]
-    if final_sl > 0 and (final_tp / final_sl) < 1.5:
-        locked_sl = round(final_tp / 1.5, 2)
-        if locked_sl != final_sl:
-            changes.append(f"stop_loss ratio-locked: {final_sl}% → {locked_sl}% (enforce TP:SL=1.5:1)")
-            strategy["stop_loss_pct"] = locked_sl
+    target_min_sl = round(final_tp / 2.0, 2)
+    if final_sl > 0 and final_sl != target_min_sl:
+        if abs(final_sl - target_min_sl) > 0.05:
+            changes.append(f"stop_loss ratio-locked: {final_sl}% → {target_min_sl}% (enforce TP:SL=2:1)")
+        strategy["stop_loss_pct"] = target_min_sl
 
     return strategy, changes
 

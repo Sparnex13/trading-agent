@@ -224,6 +224,7 @@ SCALP_STOP_PCT = 1.5        # stop loss at -1.5% (net -2.7% after fees — 1.2:1
 SCALP_ENTRY_MOVE_PCT = 0.5  # enter if XRP moved up >=0.5% since last check (reduce noise)
 SCALP_COOLDOWN_MINS = 5     # min minutes between scalp entries
 SCALP_TIME_STOP_MINS = 60   # force-exit any scalp open longer than 60 minutes (scalp ≠ bag hold)
+SCALP_MAX_AGE_MINS = 240    # ABSOLUTE max: kill any scalp older than 4 hours (stale position guard)
 
 def check_scalp(state, prices, cash, total):
     """
@@ -258,6 +259,32 @@ def check_scalp(state, prices, cash, total):
         entry = pos["entry"]
         pnl_pct = (xrp_price - entry) / entry * 100
         pos_age_mins = (time.time() - pos.get("entry_time", time.time())) / 60
+
+        # Absolute max-age kill: stale scalp positions from crash/gap recovery
+        if pos_age_mins >= SCALP_MAX_AGE_MINS:
+            qty_str = f"{pos['qty']:.2f}"
+            status, result = market_sell(SCALP_ASSET, qty_str)
+            if result.get("success"):
+                time.sleep(1)
+                order = get_order(result["success_response"]["order_id"])
+                exit_price = float(order.get("average_filled_price", xrp_price))
+                realized_pnl = (exit_price - entry) * pos["qty"]
+                scalp["position"] = None
+                if realized_pnl >= 0:
+                    scalp["wins"] += 1
+                else:
+                    scalp["losses"] += 1
+                scalp["trades_today"] += 1
+                state["trades"].append({
+                    "time": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+                    "asset": "XRP", "side": "SELL",
+                    "qty": pos["qty"], "entry": entry, "exit": exit_price,
+                    "sizeUsd": pos["size_usd"], "pnl": realized_pnl,
+                    "reason": f"SCALP STALE KILL — held {pos_age_mins:.0f}min (max: {SCALP_MAX_AGE_MINS}min) | P&L: {pnl_pct:+.2f}%",
+                    "strategy_context": f"XRP scalp stale position killed | Entry ${entry:.4f} → Exit ${exit_price:.4f} | Age {pos_age_mins:.0f}min",
+                    "signals": [f"scalp", f"stale-kill", f"XRP {pnl_pct:+.1f}%"]
+                })
+                return "sell", f"💀 XRP SCALP STALE KILL @ ${exit_price:.4f} | {pnl_pct:+.2f}% | {pos_age_mins:.0f}min open"
 
         # Time-stop: force-exit scalp that's been open too long (scalp ≠ bag hold)
         if pos_age_mins >= SCALP_TIME_STOP_MINS:
@@ -652,7 +679,11 @@ def should_rotate_position(state, prices, strategy):
         if pnl_pct >= 0:
             continue
 
-        if pnl_pct < -3.0 and rotation_edge > 1.2 and held_hours >= 6.0:
+        # Each rotation burns ~0.8-1.2% in round-trip fees — need strong conviction:
+        # - Position must be down >5% (significant loss, not noise)
+        # - Alternative must have score edge > 2.0 (high conviction, not statistical noise)
+        # - Held at least 10 hours (give position real time to work)
+        if pnl_pct < -5.0 and rotation_edge > 2.0 and held_hours >= 10.0:
             # Check rotation cooldown
             last_rotate = state.get("last_rotation_time", 0)
             if time.time() - last_rotate < 28800:  # 8 hour cooldown
@@ -861,12 +892,14 @@ def run_hourly():
             exit_reason = f"TAKE-PROFIT HIT — ${current_price:.4f} >= ${target:.4f} (+{pnl_pct:.1f}%)"
         elif pnl_pct >= tp_pct / 2 and pos.get("peak_price", 0) > 0:
             drawdown = (current_price - pos["peak_price"]) / pos["peak_price"] * 100
-            # Tighter trailing stop as gains increase: lock in more of the profit
-            # At 50% of TP: trail -1.5% from peak | At 75% of TP: trail -1.0% | At TP: hit target
-            if pnl_pct >= tp_pct * 0.75:
+            # Progressive trailing: wider at moderate gains, tighter near target
+            # At 50% of TP: trail -2.5% | At 75% of TP: trail -1.5% | Above TP: trail -1.0%
+            if pnl_pct >= tp_pct:
                 trail_threshold = -1.0
-            else:
+            elif pnl_pct >= tp_pct * 0.75:
                 trail_threshold = -1.5
+            else:
+                trail_threshold = -2.5
             if drawdown < trail_threshold:
                 should_exit = True
                 exit_reason = f"TRAILING EXIT — {pnl_pct:.1f}% up, reversing {drawdown:.1f}% from peak (trail threshold: {trail_threshold}%)"
