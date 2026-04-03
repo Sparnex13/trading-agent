@@ -8,6 +8,9 @@ import jwt, time, secrets, requests, json, uuid, os, sys
 from datetime import datetime, timezone
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
 
+DUST_THRESHOLD_USD = 1.0  # Ignore positions below this value (dust, micro-balances)
+STABLECOINS = {"USD", "USDC", "USDT"}  # Never track these as trading positions
+
 # ── Config ──────────────────────────────────────────────────────────────────
 KEY_NAME = "organizations/554326fb-7744-4bae-a194-1b96ee7e9c58/apiKeys/c6238882-932b-4f8e-a966-31cb7686b56a"
 PRIVATE_KEY_PEM = b"""-----BEGIN EC PRIVATE KEY-----
@@ -114,15 +117,67 @@ def get_order(order_id):
     return data.get("order", {})
 
 # ── State management ──────────────────────────────────────────────────────────
+def _is_live_filter(sym, pos_data):
+    """Return True if a Coinbase position should be tracked in our state.
+    Filters out: stablecoins (USD, USDC, USDT), dust (<$1), and non-traded tokens."""
+    if sym in STABLECOINS:
+        return False
+    fi = pos_data.get("fiat_value", 0)
+    if fi < DUST_THRESHOLD_USD:
+        return False
+    return True
+
 def load_state():
+    """Load state with corruption recovery — if JSON is invalid, restore from git."""
     if os.path.exists(STATE_FILE):
-        with open(STATE_FILE) as f:
-            return json.load(f)
+        try:
+            with open(STATE_FILE) as f:
+                return json.load(f)
+        except (json.JSONDecodeError, ValueError) as e:
+            # State file corrupted — back it up and restore from git
+            import shutil
+            bak = STATE_FILE + ".corrupt." + datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+            try:
+                shutil.copy2(STATE_FILE, bak)
+            except Exception:
+                pass
+            import subprocess
+            try:
+                r = subprocess.run(
+                    ["git", "checkout", "HEAD", "--", STATE_FILE],
+                    capture_output=True, text=True, timeout=10,
+                    cwd=os.path.dirname(STATE_FILE)
+                )
+                if r.returncode == 0:
+                    with open(STATE_FILE) as f:
+                        state = json.load(f)
+                    state.setdefault("recovery_log", []).append({
+                        "time": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+                        "reason": f"JSON corrupted: {e}",
+                        "action": "restored from git HEAD"
+                    })
+                    return state
+            except Exception:
+                pass
+            # Last resort: return default state
+            return dict(DEFAULT_STATE)
     return dict(DEFAULT_STATE)
 
 def save_state(state):
-    with open(STATE_FILE, "w") as f:
-        json.dump(state, f, indent=2)
+    """Atomic write: write to temp file then rename to prevent corruption."""
+    tmp = STATE_FILE + ".tmp"
+    try:
+        with open(tmp, "w") as f:
+            json.dump(state, f, indent=2)
+        os.replace(tmp, STATE_FILE)  # atomic on POSIX
+    except Exception:
+        # Fallback: try direct write
+        try:
+            with open(STATE_FILE, "w") as f:
+                json.dump(state, f, indent=2)
+        finally:
+            if os.path.exists(tmp):
+                os.remove(tmp)
 
 # ── Market research ───────────────────────────────────────────────────────────
 def get_crypto_prices():
@@ -221,7 +276,7 @@ SCALP_SYMBOL = "XRP"
 SCALP_ALLOC_USD = 5.0       # fixed $5 per scalp trade (small, frequent)
 SCALP_TARGET_PCT = 4.5      # take profit at +4.5% (net ~3.3% after 1.2% round-trip fees)
 SCALP_STOP_PCT = 1.5        # stop loss at -1.5% (net -2.7% after fees — 1.2:1 net ratio, BE ~45% WR)
-SCALP_ENTRY_MOVE_PCT = 0.5  # enter if XRP moved up >=0.5% since last check (reduce noise)
+SCALP_ENTRY_MOVE_PCT = 0.8  # enter if XRP moved up >=0.8% since last check (reduce noise in choppy markets)
 SCALP_COOLDOWN_MINS = 5     # min minutes between scalp entries
 SCALP_TIME_STOP_MINS = 60   # force-exit any scalp open longer than 60 minutes (scalp ≠ bag hold)
 SCALP_MAX_AGE_MINS = 240    # ABSOLUTE max: kill any scalp older than 4 hours (stale position guard)
@@ -825,17 +880,24 @@ def run_hourly():
     except:
         pass
 
-    # Sync all positions from live Coinbase portfolio (source of truth)
+    # Sync positions from live Coinbase portfolio (source of truth)
+    # Remove state entries for positions no longer held or below dust threshold
     for sym in list(state["positions"].keys()):
-        live_qty = live_positions.get(sym, {}).get("qty", 0)
+        lp = live_positions.get(sym, {})
+        live_qty = lp.get("qty", 0)
+        live_fi = lp.get("fiat_value", 0)
         live_price = prices.get(sym, {}).get("price") or 0
-        if live_qty > 0:
-            state["positions"][sym]["qty"] = live_qty
-            if live_price:
-                state["positions"][sym]["size_usd"] = round(live_qty * live_price, 2)
-                state["positions"][sym]["peak_price"] = max(
-                    state["positions"][sym].get("peak_price", live_price), live_price
-                )
+        if live_qty <= 0 or live_fi < DUST_THRESHOLD_USD or sym in STABLECOINS:
+            # Position closed, dust, or stablecoin — remove from active tracking
+            if sym in state["positions"]:
+                del state["positions"][sym]
+            continue
+        state["positions"][sym]["qty"] = live_qty
+        if live_price:
+            state["positions"][sym]["size_usd"] = round(live_qty * live_price, 2)
+            state["positions"][sym]["peak_price"] = max(
+                state["positions"][sym].get("peak_price", live_price), live_price
+            )
 
     report_lines = [
         f"📊 **HOURLY REPORT — Day {day_num}/30 — {ts}**",
