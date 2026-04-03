@@ -834,25 +834,29 @@ def run_hourly():
 
     actions_taken = []
 
-    # ── Safety: Enforce TP/SL ratio ≥ 1.5:1 (should be locked by research.py now) ──
-    # This is a last-resort guard — research.py now co-adjusts SL when Glint fires,
-    # so this should rarely trigger and NOT log to adjustments_log (prevents log spam).
+    # ── Safety: Enforce TP:SL ratio ≥ 2.0:1 ──
+    # Only writes to strategy.json ONCE per run when correction needed.
+    # No adjustment_log spam — external research script will see the new values.
+    import json as _json
+    strategy_changed = False
     strategy = load_strategy()
     tp = strategy.get("take_profit_pct", 5.0)
+    MIN_RATIO = 2.0
     sl = strategy.get("stop_loss_pct", 7.0)
-    if sl > 0 and tp / sl < 1.5:
-        corrected_sl = round(tp / 1.5, 2)
-        if corrected_sl != sl:
-            strategy["stop_loss_pct"] = corrected_sl
-            # Only log if significantly off (avoid log spam from minor float drift)
-            if abs(corrected_sl - sl) > 0.1:
-                strategy.setdefault("adjustments_log", []).append({
-                    "time": ts, "changes": [f"stop_loss emergency-fix: {sl}% → {corrected_sl}% (ratio<1.5:1, TP={tp}%)"],
-                    "regime": strategy.get("market_regime", "?")
-                })
-            with open(STRATEGY_FILE, "w") as f:
-                import json as _json
-                _json.dump(strategy, f, indent=2)
+    ratio = tp / sl if sl > 0 else 0
+    if ratio < MIN_RATIO:
+        corrected_sl = round(tp / MIN_RATIO, 2)
+        strategy["stop_loss_pct"] = corrected_sl
+        strategy_changed = True
+
+    # ── Fee drag sanity check ──
+    if strategy.get("take_profit_pct", 0) < 3.0:
+        strategy["take_profit_pct"] = 5.0
+        strategy_changed = True
+
+    if strategy_changed:
+        with open(STRATEGY_FILE, "w") as f:
+            _json.dump(strategy, f, indent=2)
 
     # ── Check exit conditions (all open positions) ──
     positions_to_close = []
@@ -870,9 +874,9 @@ def run_hourly():
         pnl_pct = (current_price - entry) / entry * 100
         unrealized_pnl = (current_price - entry) * pos["qty"]
         strategy = load_strategy()
-        # Enforce TP:SL ≥ 1.5:1
+        # Enforce TP:SL ≥ 2.0:1
         tp_pct = strategy["take_profit_pct"]
-        sl_pct = min(strategy["stop_loss_pct"], tp_pct / 1.5)
+        sl_pct = min(strategy["stop_loss_pct"], tp_pct / 2.0)
         stop = entry * (1 - sl_pct / 100)
         target = entry * (1 + tp_pct / 100)
         pos["stop_loss"] = stop
@@ -1020,8 +1024,52 @@ def run_hourly():
                     "est_gain_usd": round(total * 0.30 * strategy["take_profit_pct"] / 100, 2)
                 })
 
-    # ── XRP Scalp Layer ──
+    # ── XRP Scalp Layer — crash recovery kill stale positions ──
     xrp_price = prices.get("XRP", {}).get("price", 0)
+
+    # Crash recovery: if scalp position was open at last save but daemon
+    # went down, kill it unconditionally (we can't trust entry price/fills
+    # after a gap — and holding a scalp for hours violates the strategy).
+    scalp_data = state.get("scalp", {})
+    scalp_pos = scalp_data.get("position")
+    if scalp_pos:
+        pos_age_mins = (time.time() - scalp_pos.get("entry_time", time.time())) / 60
+        if pos_age_mins > SCALP_MAX_AGE_MINS + 30:
+            # Stale scalp from crash — liquidate immediately
+            qty_str = f"{scalp_pos['qty']:.2f}"
+            status, result = market_sell(SCALP_ASSET, qty_str)
+            if result.get("success"):
+                time.sleep(1)
+                order = get_order(result["success_response"]["order_id"])
+                exit_price = float(order.get("average_filled_price", xrp_price))
+                entry = scalp_pos["entry"]
+                realized_pnl = (exit_price - entry) * scalp_pos["qty"]
+                pnl_pct = (exit_price - entry) / entry * 100
+                scalp_data["position"] = None
+                if realized_pnl >= 0:
+                    scalp_data["wins"] = scalp_data.get("wins", 0) + 1
+                else:
+                    scalp_data["losses"] = scalp_data.get("losses", 0) + 1
+                scalp_data.setdefault("trades_today", 0)
+                scalp_data["trades_today"] += 1
+                state["scalp"] = scalp_data
+                state["trades"].append({
+                    "time": ts, "asset": "XRP", "side": "SELL",
+                    "qty": scalp_pos["qty"], "entry": entry, "exit": exit_price,
+                    "sizeUsd": scalp_pos["size_usd"], "pnl": realized_pnl,
+                    "reason": f"CRASH RECOVERY KILL — scalp open {pos_age_mins:.0f}min (max: {SCALP_MAX_AGE_MINS}min) | P&L: {pnl_pct:+.2f}%",
+                    "strategy_context": f"Stale scalp killed after daemon gap | Entry ${entry:.4f} → Exit ${exit_price:.4f} | Age {pos_age_mins:.0f}min",
+                    "signals": ["crash-recovery", "stale-kill"]
+                })
+                # Save state immediately so we don't double-kill on next run
+                save_state(state)
+                # Refresh cash after liquidation
+                total, cash, live_positions = get_portfolio()
+            else:
+                # If sell failed, drop the position anyway to prevent infinite re-kill
+                scalp_data["position"] = None
+                state["scalp"] = scalp_data
+
     scalp_action, scalp_msg = check_scalp(state, prices, cash, total)
     if scalp_action:
         actions_taken.append(scalp_msg)
@@ -1042,7 +1090,16 @@ def run_hourly():
         total, cash, live_positions = get_portfolio()
 
     # ── Check entry conditions (new position OR deploy idle cash into 2nd/3rd position) ──
-    max_positions = 3  # allow up to 3 simultaneous positions (~30% each, 10% cash reserve)
+    # Drawdown circuit breaker: cap positions when portfolio is bleeding
+    drawdown_pct = (total - START_BALANCE) / START_BALANCE * 100 if START_BALANCE else 0
+    if drawdown_pct < -15:
+        max_positions = 1
+        report_lines.append(f"\n⚠️ **DRAWDOWN CIRCUIT BREAKER:** Portfolio {drawdown_pct:.0f}% below start, max positions = 1")
+    elif drawdown_pct < -10:
+        max_positions = 2
+        report_lines.append(f"\n⚠️ **DRAWDOWN WARNING:** Portfolio {drawdown_pct:.0f}% below start, max positions = 2")
+    else:
+        max_positions = 3  # normal: up to 3 simultaneous positions
     if len(state["positions"]) < max_positions:
         trade_signal, signal_reason = decide_next_trade(state, cash, prices, total)
         if trade_signal:
@@ -1095,9 +1152,9 @@ def run_hourly():
     # ── Store cash balance ──
     state["cash"] = round(cash, 2)
 
-    # ── Cap missed opportunities log ──
+    # ── Cap missed opportunities log (trim aggressively — just recent context) ──
     if "missed_opportunities" in state:
-        state["missed_opportunities"] = state["missed_opportunities"][-200:]
+        state["missed_opportunities"] = state["missed_opportunities"][-50:]
 
     # ── Activity log entry (shown in dashboard cycle log) ──
     # Summarise all open positions for the log
