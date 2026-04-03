@@ -707,7 +707,8 @@ def should_rotate_position(state, prices, strategy):
 
 def decide_next_trade(state, cash, prices, total_balance):
     """
-    SNIPER MODE v2: Score-based signal selection. Deploy 90% on best scored signal.
+    SNIPER MODE v3: Score-based signal selection.
+    Enforces minimum 0.3% 1h momentum threshold (noise filter for extreme fear markets).
     Also deploys idle cash into second position if main position exists and cash > $5.
     """
     strategy = load_strategy()
@@ -719,7 +720,13 @@ def decide_next_trade(state, cash, prices, total_balance):
     if cash < 3:
         return None, "Not enough cash buffer (<$3)"
 
-    threshold = strategy["momentum_threshold_1h"]
+    # Noise filter: minimum threshold scales with drawdown severity
+    threshold = max(strategy["momentum_threshold_1h"], 0.3)  # floor: 0.3% minimum
+    drawdown = (total_balance - state.get("start_balance", 40)) / state.get("start_balance", 40) * 100
+    if drawdown < -5:
+        threshold = max(threshold, 0.5)  # tighten when bleeding
+    elif drawdown < -10:
+        threshold = max(threshold, 0.8)  # even stricter in deeper drawdown
     candidates = scan_sniper_targets(prices)
     held = set(state["positions"].keys())
 
@@ -842,20 +849,27 @@ def run_hourly():
 
     actions_taken = []
 
-    # ── Fee drag sanity check ──
-    # NOTE: TP:SL ratio adjustments are handled by external research script.
-    # Do NOT override stop_loss here — the oscillation loop (38+ writes/run)
-    # was fighting the script's GLINT-based adjustments.
-    strategy_changed = False
+    # ── Fee drag sanity check — fix TP/SL floors ──
+    # External research script handles TP:SL tuning. We ONLY enforce hard floors
+    # to prevent catastrophic configs (e.g., TP=3%, SL=5% = guaranteed bleed).
     strategy = load_strategy()
-    if strategy.get("take_profit_pct", 0) < 3.0:
+    strategy_changed = False
+    # Floor: TP must be at least 5%% (below this can't recoup round-trip fees + slippage)
+    if strategy.get("take_profit_pct", 0) > 0 and strategy["take_profit_pct"] < 5.0:
         strategy["take_profit_pct"] = 5.0
         strategy_changed = True
-    # De-dup guard: only write if something actually changed AND we haven't written this run already
+    # Floor: SL cannot exceed half TP → enforces ≥2:1 ratio (EV-positive)
+    sl = strategy.get("stop_loss_pct", 0)
+    tp = strategy["take_profit_pct"]
+    if sl > 0 and tp > 0 and sl > tp / 2.0:
+        strategy["stop_loss_pct"] = round(tp / 2.0, 2)
+        strategy_changed = True
+    # De-dup guard: only write if changed AND not already written this run
     if strategy_changed and not state.get("strategy_written_this_run", False):
         with open(STRATEGY_FILE, "w") as f:
-            _json.dump(strategy, f, indent=2)
+            json.dump(strategy, f, indent=2)
         state["strategy_written_this_run"] = True
+        actions_taken.append(f"🛡️ TP/SL floor enforced: TP={strategy['take_profit_pct']}%, SL={strategy['stop_loss_pct']}%")
     else:
         state["strategy_written_this_run"] = False
 
@@ -984,7 +998,7 @@ def run_hourly():
                 qty = float(order.get("filled_size", 0))
                 strategy = load_strategy()
                 tp_pct = strategy["take_profit_pct"]
-                sl_pct = min(strategy["stop_loss_pct"], tp_pct / 1.5)
+                sl_pct = min(strategy["stop_loss_pct"], tp_pct / 2.0)
                 stop = entry_price * (1 - sl_pct / 100)
                 target = entry_price * (1 + tp_pct / 100)
                 state["positions"][rot_sym] = {
@@ -1117,8 +1131,11 @@ def run_hourly():
                 entry_price = float(order.get("average_filled_price", current_asset_price))
                 qty = float(order.get("filled_size", 0))
                 strategy = load_strategy()
-                stop = entry_price * (1 - strategy["stop_loss_pct"] / 100)
-                target = entry_price * (1 + strategy["take_profit_pct"] / 100)
+                # Enforce ≥2:1 TP:SL at entry (hard floor, overrides misconfigured strategy)
+                tp_pct = strategy["take_profit_pct"]
+                sl_pct = min(strategy["stop_loss_pct"], tp_pct / 2.0)
+                stop = entry_price * (1 - sl_pct / 100)
+                target = entry_price * (1 + tp_pct / 100)
                 asset_1h = prices.get(sym, {}).get("change_1h", 0) or 0
                 asset_24h = prices.get(sym, {}).get("change_24h", 0) or 0
                 state["positions"][sym] = {
