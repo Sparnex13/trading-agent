@@ -9,7 +9,7 @@
       "peak_price": 69170,
       "order_id": "2ed9196b-a105-4ab4-9f95-e1d4e6231bec",
       "entry_time": 1774918249.893681,
-      "current_price": 66851
+      "current_price": 66829
     },
     "SOL": {
       "qty": 0.13352703,
@@ -20,7 +20,7 @@
       "peak_price": 80.43,
       "order_id": "4c2d8dca-6643-4889-97db-045cd20062b7",
       "entry_time": 1775100366.9192526,
-      "current_price": 80.42
+      "current_price": 80.41
     }
   },
   "trades": [
@@ -387,10 +387,6 @@
     }
   ],
   "balance_history": [
-    {
-      "time": "2026-04-03 03:00 UTC",
-      "value": 35.4188
-    },
     {
       "time": "2026-04-03 03:01 UTC",
       "value": 35.4173
@@ -3266,6 +3262,10 @@
     {
       "time": "2026-04-03 15:46 UTC",
       "value": 35.351
+    },
+    {
+      "time": "2026-04-03 15:47 UTC",
+      "value": 35.3524
     }
   ],
   "start_balance": 40.0,
@@ -3284,19 +3284,6 @@
   },
   "last_day": 6,
   "activity_log": [
-    {
-      "time": "2026-04-03 13:40 UTC",
-      "cycle": 720,
-      "portfolio": 35.19,
-      "eth_price": 2047.36,
-      "eth_pnl_pct": -0.18,
-      "cash": 16.18,
-      "actions": [
-        "holding BTC -0.7%, SOL +0.4%"
-      ],
-      "xrp": "Positions: BTC -0.7%, SOL +0.4%",
-      "regime": "extreme_fear"
-    },
     {
       "time": "2026-04-03 13:41 UTC",
       "cycle": 720,
@@ -4843,18 +4830,22 @@
       ],
       "xrp": "Positions: BTC -0.4%, SOL +1.6%",
       "regime": "extreme_fear"
+    },
+    {
+      "time": "2026-04-03 15:47 UTC",
+      "cycle": 720,
+      "portfolio": 35.35,
+      "eth_price": 2050.05,
+      "eth_pnl_pct": 0.59,
+      "cash": 16.18,
+      "actions": [
+        "holding BTC -0.4%, SOL +1.6%"
+      ],
+      "xrp": "Positions: BTC -0.4%, SOL +1.6%",
+      "regime": "extreme_fear"
     }
   ],
   "missed_opportunities": [
-    {
-      "time": "2026-04-03 15:02 UTC",
-      "asset": "XRP",
-      "reason": "Fully invested in BTC, SOL",
-      "signal": "+0.16% 1h | +1.56% 24h",
-      "price": 1.32,
-      "est_gain_pct": 7.0,
-      "est_gain_usd": 0.74
-    },
     {
       "time": "2026-04-03 15:03 UTC",
       "asset": "ETH",
@@ -5292,6 +5283,15 @@
       "asset": "XRP",
       "reason": "Fully invested in BTC, SOL",
       "signal": "+0.18% 1h | +1.48% 24h",
+      "price": 1.32,
+      "est_gain_pct": 10.0,
+      "est_gain_usd": 1.06
+    },
+    {
+      "time": "2026-04-03 15:47 UTC",
+      "asset": "XRP",
+      "reason": "Fully invested in BTC, SOL",
+      "signal": "+0.17% 1h | +1.47% 24h",
       "price": 1.32,
       "est_gain_pct": 10.0,
       "est_gain_usd": 1.06
