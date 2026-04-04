@@ -1,16 +1,5 @@
 {
   "positions": {
-    "BTC": {
-      "qty": 3.741e-05,
-      "entry": 67091.96,
-      "stop_loss": 64743.741400000006,
-      "target": 71788.3972,
-      "size_usd": 2.52,
-      "peak_price": 69170,
-      "order_id": "2ed9196b-a105-4ab4-9f95-e1d4e6231bec",
-      "entry_time": 1774918249.893681,
-      "current_price": 67254
-    },
     "SOL": {
       "qty": 0.13352703,
       "entry": 79.16,
@@ -394,13 +383,25 @@
         "F&G: 9/100",
         "BTC $66,576"
       ]
+    },
+    {
+      "time": "2026-04-04 21:36 UTC",
+      "asset": "BTC",
+      "side": "SELL",
+      "qty": 3.741e-05,
+      "entry": 67091.96,
+      "exit": 67260.62,
+      "sizeUsd": 2.52,
+      "pnl": 0.006309570599999587,
+      "reason": "MAX AGE KILL \u2014 held 116.8h (limit: 72h) | PnL: +0.25%",
+      "strategy_context": "Zombie kill: BTC @ $67260.6200 | Entry $67091.9600 | Held 116.8h | P&L $+0.006",
+      "signals": [
+        "zombie-kill",
+        "age: 117h"
+      ]
     }
   ],
   "balance_history": [
-    {
-      "time": "2026-04-04 08:56 UTC",
-      "value": 35.2856
-    },
     {
       "time": "2026-04-04 08:57 UTC",
       "value": 35.2821
@@ -3276,11 +3277,15 @@
     {
       "time": "2026-04-04 21:35 UTC",
       "value": 35.4568
+    },
+    {
+      "time": "2026-04-04 21:36 UTC",
+      "value": 35.4172
     }
   ],
   "start_balance": 40.0,
   "day": 7,
-  "cash": 16.18,
+  "cash": 18.67,
   "scalp": {
     "trades_today": 0,
     "last_price": 1.31,
@@ -3290,19 +3295,6 @@
   },
   "last_day": 7,
   "activity_log": [
-    {
-      "time": "2026-04-04 19:29 UTC",
-      "cycle": 720,
-      "portfolio": 35.46,
-      "eth_price": 2068.36,
-      "eth_pnl_pct": 0.88,
-      "cash": 16.18,
-      "actions": [
-        "holding BTC +0.4%, SOL +2.3%, XRP +0.0%"
-      ],
-      "xrp": "Positions: BTC +0.4%, SOL +2.3%, XRP +0.0%",
-      "regime": "extreme_fear"
-    },
     {
       "time": "2026-04-04 19:30 UTC",
       "cycle": 720,
@@ -4849,18 +4841,22 @@
       ],
       "xrp": "Positions: BTC +0.2%, SOL +2.2%, XRP +0.0%",
       "regime": "extreme_fear"
+    },
+    {
+      "time": "2026-04-04 21:36 UTC",
+      "cycle": 720,
+      "portfolio": 35.42,
+      "eth_price": 2066.37,
+      "eth_pnl_pct": 1.09,
+      "cash": 18.67,
+      "actions": [
+        "\ud83d\udc80 Zombie kill BTC @ $67260.6200 | P&L: $+0.006 (held 116.8h)"
+      ],
+      "xrp": "Positions: SOL +2.2%, XRP +0.0%",
+      "regime": "extreme_fear"
     }
   ],
   "missed_opportunities": [
-    {
-      "time": "2026-04-04 19:29 UTC",
-      "asset": "ETH",
-      "reason": "Fully invested in BTC, SOL, XRP",
-      "signal": "+0.55% 1h | +0.95% 24h",
-      "price": 2068.36,
-      "est_gain_pct": 7.0,
-      "est_gain_usd": 0.74
-    },
     {
       "time": "2026-04-04 19:30 UTC",
       "asset": "ETH",
@@ -5299,6 +5295,15 @@
       "reason": "Fully invested in BTC, SOL, XRP",
       "signal": "+0.18% 1h | +0.42% 24h",
       "price": 2066.61,
+      "est_gain_pct": 7.0,
+      "est_gain_usd": 0.74
+    },
+    {
+      "time": "2026-04-04 21:36 UTC",
+      "asset": "ETH",
+      "reason": "Fully invested in BTC, SOL, XRP",
+      "signal": "+0.17% 1h | +0.41% 24h",
+      "price": 2066.37,
       "est_gain_pct": 7.0,
       "est_gain_usd": 0.74
     }
