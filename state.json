@@ -403,10 +403,6 @@
   ],
   "balance_history": [
     {
-      "time": "2026-04-04 09:04 UTC",
-      "value": 35.2824
-    },
-    {
       "time": "2026-04-04 09:05 UTC",
       "value": 35.2791
     },
@@ -3281,6 +3277,10 @@
     {
       "time": "2026-04-04 21:42 UTC",
       "value": 35.4277
+    },
+    {
+      "time": "2026-04-04 21:44 UTC",
+      "value": 35.4256
     }
   ],
   "start_balance": 40.0,
@@ -3295,19 +3295,6 @@
   },
   "last_day": 7,
   "activity_log": [
-    {
-      "time": "2026-04-04 19:37 UTC",
-      "cycle": 720,
-      "portfolio": 35.46,
-      "eth_price": 2067.9,
-      "eth_pnl_pct": 0.84,
-      "cash": 16.18,
-      "actions": [
-        "holding BTC +0.4%, SOL +2.2%, XRP +0.0%"
-      ],
-      "xrp": "Positions: BTC +0.4%, SOL +2.2%, XRP +0.0%",
-      "regime": "extreme_fear"
-    },
     {
       "time": "2026-04-04 19:38 UTC",
       "cycle": 720,
@@ -4854,18 +4841,22 @@
       ],
       "xrp": "Positions: SOL +2.2%, XRP +0.0%",
       "regime": "extreme_fear"
+    },
+    {
+      "time": "2026-04-04 21:44 UTC",
+      "cycle": 720,
+      "portfolio": 35.43,
+      "eth_price": 2067.71,
+      "eth_pnl_pct": 1.09,
+      "cash": 18.67,
+      "actions": [
+        "holding SOL +2.2%, XRP +0.0%"
+      ],
+      "xrp": "Positions: SOL +2.2%, XRP +0.0%",
+      "regime": "extreme_fear"
     }
   ],
   "missed_opportunities": [
-    {
-      "time": "2026-04-04 19:37 UTC",
-      "asset": "ETH",
-      "reason": "Fully invested in BTC, SOL, XRP",
-      "signal": "+0.59% 1h | +0.93% 24h",
-      "price": 2067.9,
-      "est_gain_pct": 7.0,
-      "est_gain_usd": 0.74
-    },
     {
       "time": "2026-04-04 19:38 UTC",
       "asset": "ETH",
@@ -5304,6 +5295,15 @@
       "reason": "Fully invested in SOL, XRP",
       "signal": "+0.21% 1h | +0.49% 24h",
       "price": 2067.65,
+      "est_gain_pct": 7.0,
+      "est_gain_usd": 0.74
+    },
+    {
+      "time": "2026-04-04 21:44 UTC",
+      "asset": "ETH",
+      "reason": "Fully invested in SOL, XRP",
+      "signal": "+0.21% 1h | +0.49% 24h",
+      "price": 2067.71,
       "est_gain_pct": 7.0,
       "est_gain_usd": 0.74
     }
