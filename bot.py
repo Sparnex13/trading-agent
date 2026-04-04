@@ -179,6 +179,91 @@ def save_state(state):
             if os.path.exists(tmp):
                 os.remove(tmp)
 
+
+# ── Strategy Oscillation Stabilization ──────────────────────────────────────
+# The external research script frequently overwrites strategy.json with
+# oscillating values (TP 7↔10%, asset ETH↔SOL). This creates thrash.
+# We detect flips and stabilize to conservative, proven values.
+
+def _strategy_flip_key(strategy):
+    """Deterministic key for strategy config — only tracks values that get thrashed."""
+    return (strategy.get("take_profit_pct", 10.0), strategy.get("stop_loss_pct", 5.0),
+            strategy.get("preferred_asset", "ETH-USD"), strategy.get("market_regime", "unknown"),
+            strategy.get("momentum_threshold_1h", 0.3), strategy.get("max_position_pct", 60.0))
+
+def _load_stab_state():
+    """Read stabilization tracker from state file."""
+    try:
+        with open(STATE_FILE) as f:
+            state = json.load(f)
+        return state.get("strat_stab", {"keys": [], "flip_count": 0,
+                                        "locked_until": 0, "lock_tp": None, "lock_sl": None})
+    except Exception:
+        return {"keys": [], "flip_count": 0, "locked_until": 0, "lock_tp": None, "lock_sl": None}
+
+def _save_stab_state(stab):
+    """Write stabilization tracker back into state file."""
+    try:
+        with open(STATE_FILE) as f:
+            state = json.load(f)
+        state["strat_stab"] = stab
+        save_state(state)
+    except Exception:
+        pass
+
+# Conservative fallback values used when research script is thrashing
+STAB_TAKE_PROFIT = 10.0
+STAB_STOP_LOSS = 5.0
+STAB_COOLDOWN_HOURS = 12  # How long to stay locked after detecting oscillation
+STAB_FLIP_THRESHOLD = 3   # Num flips before we lock (fewer = more aggressive detection)
+
+def stabilize_strategy(strategy):
+    """
+    Detect strategy.json oscillation (research script thrash) and freeze
+    values when flip-flopping is detected.
+    Returns the (possibly stabilized) strategy dict.
+    """
+    stab = _load_stab_state()
+    current_key = _strategy_flip_key(strategy)
+
+    # If locked, check if cooldown expired
+    if stab["locked_until"] > time.time():
+        stab["keys"].append(current_key)
+        stab["keys"] = stab["keys"][-10:]  # keep recent history
+        stab["flip_count"] += 1
+        # Still oscillating while locked — extend cooldown
+        stab["locked_until"] = time.time() + (STAB_COOLDOWN_HOURS * 3600)
+        _save_stab_state(stab)
+        # Return stabilized (conservative) values
+        strategy["take_profit_pct"] = stab.get("lock_tp") or STAB_TAKE_PROFIT
+        strategy["stop_loss_pct"] = stab.get("lock_sl") or STAB_STOP_LOSS
+        # Don't let preferred_asset flip either
+        if "last_stable_asset" in stab:
+            strategy["preferred_asset"] = stab["last_stable_asset"]
+        return strategy
+
+    # Check if config changed from last check
+    if stab["keys"] and current_key != stab["keys"][-1]:
+        stab["flip_count"] = stab.get("flip_count", 0) + 1
+    else:
+        stab["flip_count"] = 0
+
+    stab["keys"].append(current_key)
+    stab["keys"] = stab["keys"][-10:]
+
+    # If we've seen enough flips, lock in conservative values
+    if stab["flip_count"] >= STAB_FLIP_THRESHOLD:
+        stab["locked_until"] = time.time() + (STAB_COOLDOWN_HOURS * 3600)
+        stab["lock_tp"] = STAB_TAKE_PROFIT
+        stab["lock_sl"] = STAB_STOP_LOSS
+        stab["last_stable_asset"] = strategy.get("preferred_asset", "ETH-USD")
+        strategy["take_profit_pct"] = STAB_TAKE_PROFIT
+        strategy["stop_loss_pct"] = STAB_STOP_LOSS
+        print(f"🔒 Strategy oscillation detected ({stab['flip_count']} flips) — locked to TP={STAB_TAKE_PROFIT}%, SL={STAB_STOP_LOSS}% for {STAB_COOLDOWN_HOURS}h")
+
+    _save_stab_state(stab)
+    return strategy
+
 # ── Market research ───────────────────────────────────────────────────────────
 def get_crypto_prices():
     """Fetch prices with 1h/24h changes. Primary: CoinGecko markets. Fallback: Coinbase prices."""
@@ -276,8 +361,8 @@ SCALP_SYMBOL = "XRP"
 SCALP_ALLOC_USD = 5.0       # fixed $5 per scalp trade (small, frequent)
 SCALP_TARGET_PCT = 4.5      # take profit at +4.5% (net ~3.3% after 1.2% round-trip fees)
 SCALP_STOP_PCT = 1.5        # stop loss at -1.5% (net -2.7% after fees — 1.2:1 net ratio, BE ~45% WR)
-SCALP_ENTRY_MOVE_PCT = 0.8  # enter if XRP moved up >=0.8% since last check (reduce noise in choppy markets)
-SCALP_COOLDOWN_MINS = 5     # min minutes between scalp entries
+SCALP_ENTRY_MOVE_PCT = 1.0  # enter if XRP moved up >=1.0% since last check (raised from 0.8% — need cleaner signals in low-vol markets)
+SCALP_COOLDOWN_MINS = 8     # min minutes between scalp entries (raised from 5min — reduce overtrading)
 SCALP_TIME_STOP_MINS = 60   # force-exit any scalp open longer than 60 minutes (scalp ≠ bag hold)
 SCALP_MAX_AGE_MINS = 240    # ABSOLUTE max: kill any scalp older than 4 hours (stale position guard)
 
@@ -420,8 +505,8 @@ def check_scalp(state, prices, cash, total):
     if cooldown_elapsed < SCALP_COOLDOWN_MINS:
         return None, f"XRP scalp cooldown ({SCALP_COOLDOWN_MINS - cooldown_elapsed:.0f}min)"
 
-    # Need at least $6 cash (scalp $5 + $1 buffer)
-    if cash < 6:
+    # Need at least $6.50 cash (scalp $5 + $1.50 buffer after fees)
+    if cash < 6.5:
         return None, f"XRP scalp skipped — not enough cash (${cash:.2f})"
 
     # Max 12 scalp trades/day
@@ -841,7 +926,10 @@ def decide_next_trade(state, cash, prices, total_balance):
             # 2nd/3rd position: up to 30% of portfolio each
             max_alloc = round(total_balance * 0.30, 2)
             trade_usd = round(min(cash - CASH_RESERVE, max_alloc), 2)
-        trade_usd = max(2.0, trade_usd)
+        # Enforce minimum viable position size — positions below $4.00 are fee-negative on a $35 portfolio
+        MIN_POSITION_USD = 4.0
+        if trade_usd < MIN_POSITION_USD:
+            return None, f"Signal too weak — computed size ${trade_usd:.2f} < ${MIN_POSITION_USD:.2f} minimum"
         return (product_id, trade_usd), best_reason
 
     best_str = f"{candidates[0][1]} score={candidates[0][2]:.2f} {candidates[0][3]:+.2f}%1h" if candidates else "no data"
@@ -872,6 +960,10 @@ def run_hourly():
     btc_price = prices.get("BTC", {}).get("price", 0)
     eth = prices.get("ETH", {})
 
+    # ── Strategy stabilization: detect/research script oscillation ──
+    strategy = load_strategy()
+    strategy = stabilize_strategy(strategy)
+
     # Get Fear & Greed for context
     fear_greed_val = "N/A"
     try:
@@ -882,6 +974,9 @@ def run_hourly():
 
     # Sync positions from live Coinbase portfolio (source of truth)
     # Remove state entries for positions no longer held or below dust threshold
+    strategy = load_strategy()
+    tp_pct = strategy["take_profit_pct"]
+    sl_pct = min(strategy["stop_loss_pct"], tp_pct / 2.0)
     for sym in list(state["positions"].keys()):
         lp = live_positions.get(sym, {})
         live_qty = lp.get("qty", 0)
@@ -898,6 +993,12 @@ def run_hourly():
             state["positions"][sym]["peak_price"] = max(
                 state["positions"][sym].get("peak_price", live_price), live_price
             )
+            # Repair missing stop/target entries (happens if position was created before strategy changed)
+            entry = state["positions"][sym].get("entry", live_price)
+            if not state["positions"][sym].get("stop_loss"):
+                state["positions"][sym]["stop_loss"] = entry * (1 - sl_pct / 100)
+            if not state["positions"][sym].get("target"):
+                state["positions"][sym]["target"] = entry * (1 + tp_pct / 100)
 
     report_lines = [
         f"📊 **HOURLY REPORT — Day {day_num}/30 — {ts}**",
@@ -928,10 +1029,19 @@ def run_hourly():
         strategy_changed = True
     # De-dup guard: only write if changed AND not already written this run
     if strategy_changed and not state.get("strategy_written_this_run", False):
-        with open(STRATEGY_FILE, "w") as f:
-            json.dump(strategy, f, indent=2)
-        state["strategy_written_this_run"] = True
-        actions_taken.append(f"🛡️ TP/SL floor enforced: TP={strategy['take_profit_pct']}%, SL={strategy['stop_loss_pct']}%")
+        # Anti-churn: don't write if disk already matches (prevents bot.py ↔ research.py fighting)
+        try:
+            with open(STRATEGY_FILE) as _f:
+                disk_strategy = json.load(_f)
+            if strategy == disk_strategy:
+                strategy_changed = False
+        except Exception:
+            pass
+        if strategy_changed:
+            with open(STRATEGY_FILE, "w") as f:
+                json.dump(strategy, f, indent=2)
+            state["strategy_written_this_run"] = True
+            actions_taken.append(f"🛡️ TP/SL floor enforced: TP={strategy['take_profit_pct']}%, SL={strategy['stop_loss_pct']}%")
     else:
         state["strategy_written_this_run"] = False
 
@@ -1104,62 +1214,72 @@ def run_hourly():
     # ── XRP Scalp Layer — crash recovery kill stale positions ──
     xrp_price = prices.get("XRP", {}).get("price", 0)
 
-    # Crash recovery: if scalp position was open at last save but daemon
-    # went down, kill it unconditionally (we can't trust entry price/fills
-    # after a gap — and holding a scalp for hours violates the strategy).
-    scalp_data = state.get("scalp", {})
-    scalp_pos = scalp_data.get("position")
-    if scalp_pos:
-        pos_age_mins = (time.time() - scalp_pos.get("entry_time", time.time())) / 60
-        if pos_age_mins > SCALP_MAX_AGE_MINS + 30:
-            # Stale scalp from crash — liquidate immediately
-            qty_str = f"{scalp_pos['qty']:.2f}"
-            status, result = market_sell(SCALP_ASSET, qty_str)
-            if result.get("success"):
-                time.sleep(1)
-                order = get_order(result["success_response"]["order_id"])
-                exit_price = float(order.get("average_filled_price", xrp_price))
-                entry = scalp_pos["entry"]
-                realized_pnl = (exit_price - entry) * scalp_pos["qty"]
-                pnl_pct = (exit_price - entry) / entry * 100
-                scalp_data["position"] = None
-                if realized_pnl >= 0:
-                    scalp_data["wins"] = scalp_data.get("wins", 0) + 1
-                else:
-                    scalp_data["losses"] = scalp_data.get("losses", 0) + 1
-                scalp_data.setdefault("trades_today", 0)
-                scalp_data["trades_today"] += 1
-                state["scalp"] = scalp_data
-                state["trades"].append({
-                    "time": ts, "asset": "XRP", "side": "SELL",
-                    "qty": scalp_pos["qty"], "entry": entry, "exit": exit_price,
-                    "sizeUsd": scalp_pos["size_usd"], "pnl": realized_pnl,
-                    "reason": f"CRASH RECOVERY KILL — scalp open {pos_age_mins:.0f}min (max: {SCALP_MAX_AGE_MINS}min) | P&L: {pnl_pct:+.2f}%",
-                    "strategy_context": f"Stale scalp killed after daemon gap | Entry ${entry:.4f} → Exit ${exit_price:.4f} | Age {pos_age_mins:.0f}min",
-                    "signals": ["crash-recovery", "stale-kill"]
-                })
-                # Save state immediately so we don't double-kill on next run
-                save_state(state)
-                # Refresh cash after liquidation
-                total, cash, live_positions = get_portfolio()
-            else:
-                # If sell failed, drop the position anyway to prevent infinite re-kill
-                scalp_data["position"] = None
-                state["scalp"] = scalp_data
+    # Skip scalp entirely when portfolio is underwater (negative expectancy drain)
+    scalp_disabled = False
+    scalp_drawdown = (total - state.get("start_balance", START_BALANCE)) / state.get("start_balance", START_BALANCE) * 100 if state.get("start_balance", START_BALANCE) else 0
+    if scalp_drawdown < -5:
+        scalp_disabled = True
+        state.setdefault("scalp", {})["disabled_until_recovery"] = True
 
-    scalp_action, scalp_msg = check_scalp(state, prices, cash, total)
-    if scalp_action:
-        actions_taken.append(scalp_msg)
-        report_lines.append(f"")
-        report_lines.append(f"{scalp_msg}")
-        # Refresh cash after scalp trade
-        time.sleep(1)
-        total, cash, live_positions = get_portfolio()
+    if scalp_disabled:
+        scalp_action, scalp_msg = None, f"XRP scalp DISABLED — portfolio {scalp_drawdown:.1f}% below start (need +{abs(scalp_drawdown)-5:.1f}% to re-enable)"
     else:
-        # Only show scalp status occasionally
-        run_count = len(state.get("balance_history", []))
-        if run_count % 5 == 0:
-            report_lines.append(f"  📊 XRP scalp: {scalp_msg}")
+        # Crash recovery: if scalp position was open at last save but daemon
+        # went down, kill it unconditionally (we can't trust entry price/fills
+        # after a gap — and holding a scalp for hours violates the strategy).
+        scalp_data = state.get("scalp", {})
+        scalp_pos = scalp_data.get("position")
+        if scalp_pos:
+            pos_age_mins = (time.time() - scalp_pos.get("entry_time", time.time())) / 60
+            if pos_age_mins > SCALP_MAX_AGE_MINS + 30:
+                # Stale scalp from crash — liquidate immediately
+                qty_str = f"{scalp_pos['qty']:.2f}"
+                status, result = market_sell(SCALP_ASSET, qty_str)
+                if result.get("success"):
+                    time.sleep(1)
+                    order = get_order(result["success_response"]["order_id"])
+                    exit_price = float(order.get("average_filled_price", xrp_price))
+                    entry = scalp_pos["entry"]
+                    realized_pnl = (exit_price - entry) * scalp_pos["qty"]
+                    pnl_pct = (exit_price - entry) / entry * 100
+                    scalp_data["position"] = None
+                    if realized_pnl >= 0:
+                        scalp_data["wins"] = scalp_data.get("wins", 0) + 1
+                    else:
+                        scalp_data["losses"] = scalp_data.get("losses", 0) + 1
+                    scalp_data.setdefault("trades_today", 0)
+                    scalp_data["trades_today"] += 1
+                    state["scalp"] = scalp_data
+                    state["trades"].append({
+                        "time": ts, "asset": "XRP", "side": "SELL",
+                        "qty": scalp_pos["qty"], "entry": entry, "exit": exit_price,
+                        "sizeUsd": scalp_pos["size_usd"], "pnl": realized_pnl,
+                        "reason": f"CRASH RECOVERY KILL — scalp open {pos_age_mins:.0f}min (max: {SCALP_MAX_AGE_MINS}min) | P&L: {pnl_pct:+.2f}%",
+                        "strategy_context": f"Stale scalp killed after daemon gap | Entry ${entry:.4f} → Exit ${exit_price:.4f} | Age {pos_age_mins:.0f}min",
+                        "signals": ["crash-recovery", "stale-kill"]
+                    })
+                    # Save state immediately so we don't double-kill on next run
+                    save_state(state)
+                    # Refresh cash after liquidation
+                    total, cash, live_positions = get_portfolio()
+                else:
+                    # If sell failed, drop the position anyway to prevent infinite re-kill
+                    scalp_data["position"] = None
+                    state["scalp"] = scalp_data
+
+        scalp_action, scalp_msg = check_scalp(state, prices, cash, total)
+        if scalp_action:
+            actions_taken.append(scalp_msg)
+            report_lines.append(f"")
+            report_lines.append(f"{scalp_msg}")
+            # Refresh cash after scalp trade
+            time.sleep(1)
+            total, cash, live_positions = get_portfolio()
+        else:
+            # Only show scalp status occasionally
+            run_count = len(state.get("balance_history", []))
+            if run_count % 5 == 0:
+                report_lines.append(f"  📊 XRP scalp: {scalp_msg}")
 
     # ── Refresh cash after potential sell ──
     if actions_taken:
@@ -1267,7 +1387,7 @@ def run_hourly():
     if len(state["balance_history"]) > 720:  # keep 30 days of hourly data
         state["balance_history"] = state["balance_history"][-720:]
 
-    # News signals only on every 10th run (every ~10 min) to save time
+    # ── News signals only on every 10th run (every ~10 min) to save time
     run_count = len(state.get("balance_history", []))
     if run_count % 10 == 0:
         signals = get_trending_news()

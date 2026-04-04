@@ -1,23 +1,14 @@
 {
-  "take_profit_pct": 7.0,
-  "stop_loss_pct": 3.5,
+  "take_profit_pct": 10.0,
+  "stop_loss_pct": 5.0,
   "momentum_threshold_1h": 0.1,
   "max_position_pct": 70.0,
-  "preferred_asset": "SOL-USD",
-  "last_updated": "2026-04-03 20:36 UTC",
-  "reasoning": "Market regime: extreme_fear | F&G: 9/100 (7d avg: 10) | ETH: 1h=+0.17% 24h=-0.97% 7d=+2.97% | BTC: 24h=-0.31% | Dominance: 56.1% | Extreme fear \u2192 TP=10% (volatility = bigger swings; use trailing stop, not early exit) | Stop-loss set to 5.0% (TP\u00f72.0 ratio \u2014 2:1 R:R maintained) | Extreme fear \u2192 lowering 1h momentum threshold to 0.1% (scarce signals) | Extreme fear \u2192 70% max position (keep more buffer) | SOL showing stronger momentum (0.54) vs ETH (0.54) \u2192 switching to SOL",
+  "preferred_asset": "ETH-USD",
+  "last_updated": "2026-04-04 02:52 UTC",
+  "reasoning": "Market regime: extreme_fear | F&G: 11/100 (7d avg: 10) | ETH: 1h=-0.08% 24h=-0.07% 7d=+3.10% | BTC: 24h=+0.51% | Dominance: 56.1% | Extreme fear \u2192 TP=10% (volatility = bigger swings; use trailing stop, not early exit) | Extreme fear \u2192 lowering 1h momentum threshold to 0.1% (scarce signals) | Extreme fear \u2192 70% max position (keep more buffer)",
   "market_regime": "extreme_fear",
-  "fear_greed": 9,
+  "fear_greed": 11,
   "adjustments_log": [
-    {
-      "time": "2026-03-31 13:07 UTC",
-      "changes": [
-        "stop_loss: 3.33% \u2192 7.0%",
-        "stop_loss ratio-locked: 7.0% \u2192 3.33% (enforce TP:SL=1.5:1)"
-      ],
-      "regime": "extreme_fear",
-      "fear_greed": 11
-    },
     {
       "time": "2026-03-31 14:08 UTC",
       "changes": [
@@ -434,7 +425,66 @@
       ],
       "regime": "extreme_fear",
       "fear_greed": 9
+    },
+    {
+      "time": "2026-04-03 21:36 UTC",
+      "changes": [
+        "take_profit: 7.0% \u2192 10.0%",
+        "stop_loss: 3.5% \u2192 5.0% (derived from TP/2.0)",
+        "preferred_asset: SOL-USD \u2192 ETH-USD",
+        "take_profit GLINT CUT: 10.0% \u2192 7.0% (macro bearish signal)",
+        "stop_loss GLINT CO-ADJUST: 5.0% \u2192 4.67% (TP:SL ratio lock 1.5:1)",
+        "stop_loss ratio-locked: 4.67% \u2192 3.5% (enforce TP:SL=2:1)"
+      ],
+      "regime": "extreme_fear",
+      "fear_greed": 9
+    },
+    {
+      "time": "2026-04-03 22:36 UTC",
+      "changes": [
+        "take_profit: 7.0% \u2192 10.0%",
+        "stop_loss: 3.5% \u2192 5.0% (derived from TP/2.0)",
+        "preferred_asset: ETH-USD \u2192 SOL-USD"
+      ],
+      "regime": "extreme_fear",
+      "fear_greed": 9
+    },
+    {
+      "time": "2026-04-04 00:36 UTC",
+      "changes": [
+        "take_profit: 7.0% \u2192 10.0%",
+        "stop_loss: 3.5% \u2192 5.0% (derived from TP/2.0)",
+        "preferred_asset: SOL-USD \u2192 ETH-USD",
+        "stop_loss ratio-locked: 4.67% \u2192 3.5% (enforce TP:SL=2:1)"
+      ],
+      "regime": "extreme_fear",
+      "fear_greed": 11
+    },
+    {
+      "time": "2026-04-04 01:37 UTC",
+      "changes": [
+        "take_profit: 7.0% \u2192 10.0%",
+        "stop_loss: 3.5% \u2192 5.0% (derived from TP/2.0)"
+      ],
+      "regime": "extreme_fear",
+      "fear_greed": 11
+    },
+    {
+      "time": "2026-04-04 02:37 UTC",
+      "changes": [
+        "preferred_asset: ETH-USD \u2192 SOL-USD"
+      ],
+      "regime": "extreme_fear",
+      "fear_greed": 11
+    },
+    {
+      "time": "2026-04-04 02:52 UTC",
+      "changes": [
+        "preferred_asset: SOL-USD \u2192 ETH-USD"
+      ],
+      "regime": "extreme_fear",
+      "fear_greed": 11
     }
   ],
-  "glint_score": -1
+  "glint_score": 0
 }
