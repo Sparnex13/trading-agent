@@ -8,7 +8,7 @@ import jwt, time, secrets, requests, json, uuid, os, sys
 from datetime import datetime, timezone
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
 
-DUST_THRESHOLD_USD = 1.0  # Ignore positions below this value (dust, micro-balances)
+DUST_THRESHOLD_USD = 2.0  # Ignore positions below this value (dust, micro-balances). Raised from $1 to $2 on small portfolio — positions <$2 can't recoup round-trip fees after normal moves.
 STABLECOINS = {"USD", "USDC", "USDT"}  # Never track these as trading positions
 
 # ── Config ──────────────────────────────────────────────────────────────────
@@ -186,23 +186,37 @@ def save_state(state):
 # We detect flips and stabilize to conservative, proven values.
 
 def _strategy_flip_key(strategy):
-    """Deterministic key for strategy config — only tracks values that get thrashed."""
+    """Deterministic key for strategy config — only tracks values that get thrashed.
+    Excludes noise-only fields like market_regime (changes often, doesn't cause trade thrash)."""
     return (strategy.get("take_profit_pct", 10.0), strategy.get("stop_loss_pct", 5.0),
-            strategy.get("preferred_asset", "ETH-USD"), strategy.get("market_regime", "unknown"),
+            strategy.get("preferred_asset", "ETH-USD"),
             strategy.get("momentum_threshold_1h", 0.3), strategy.get("max_position_pct", 60.0))
 
 def _load_stab_state():
-    """Read stabilization tracker from state file."""
-    try:
-        with open(STATE_FILE) as f:
-            state = json.load(f)
-        return state.get("strat_stab", {"keys": [], "flip_count": 0,
-                                        "locked_until": 0, "lock_tp": None, "lock_sl": None})
-    except Exception:
-        return {"keys": [], "flip_count": 0, "locked_until": 0, "lock_tp": None, "lock_sl": None}
+    """Read stabilization tracker from state file.
+    Falls back to defaults — does NOT require valid state.json."""
+    default = {"keys": [], "flip_count": 0, "locked_until": 0,
+               "lock_tp": STAB_TAKE_PROFIT, "lock_sl": STAB_STOP_LOSS}
+    if os.path.exists(STATE_FILE):
+        try:
+            with open(STATE_FILE) as f:
+                state = json.load(f)
+            ss = state.get("strat_stab", dict(default))
+            # Ensure lock values are populated (fix for empty stabilizer state)
+            if ss.get("lock_tp") is None:
+                ss.setdefault("lock_tp", STAB_TAKE_PROFIT)
+            if ss.get("lock_sl") is None:
+                ss.setdefault("lock_sl", STAB_STOP_LOSS)
+            return ss
+        except Exception:
+            pass
+    return default
 
 def _save_stab_state(stab):
-    """Write stabilization tracker back into state file."""
+    """Write stabilization tracker back into state file.
+    Merges into existing state to avoid full state reloads."""
+    if not os.path.exists(STATE_FILE):
+        return
     try:
         with open(STATE_FILE) as f:
             state = json.load(f)
@@ -214,23 +228,53 @@ def _save_stab_state(stab):
 # Conservative fallback values used when research script is thrashing
 STAB_TAKE_PROFIT = 10.0
 STAB_STOP_LOSS = 5.0
-STAB_COOLDOWN_HOURS = 12  # How long to stay locked after detecting oscillation
-STAB_FLIP_THRESHOLD = 3   # Num flips before we lock (fewer = more aggressive detection)
+STAB_MOMENTUM_THRESHOLD = 0.3   # Floor: don't enter on noise (research script sets 0.1%)
+STAB_COOLDOWN_HOURS = 48  # How long to stay locked after detecting oscillation (raised from 12h)
+STAB_FLIP_THRESHOLD = 2   # Num flips before we lock (research flips ~every hour, so 2 is enough)
 
 def stabilize_strategy(strategy):
     """
     Detect strategy.json oscillation (research script thrash) and freeze
     values when flip-flopping is detected.
     Returns the (possibly stabilized) strategy dict.
+    
+    ALWAYS enforces hard floors regardless of oscillation detection:
+    - TP must be >= 8% (fee-adjusted minimum profitable target)
+    - SL must be <= TP/2 (maintain >=2:1 TP:SL ratio)
+    - Momentum threshold floor >= 0.3% (no noise entries)
     """
     stab = _load_stab_state()
     current_key = _strategy_flip_key(strategy)
 
+    # ── ALWAYS enforce hard floors (independent of oscillation detection) ──
+    tp = strategy.get("take_profit_pct", 10.0)
+    sl = strategy.get("stop_loss_pct", 5.0)
+    mt = strategy.get("momentum_threshold_1h", 0.3)
+    floors_applied = False
+
+    # TP floor: must be >= 8% to survive fee drag on small portfolio
+    # Coinbase ~0.6%/side round-trip = ~1.2% total fee drag
+    # Below 8% TP, fee drag eats >15% of wins — mathematically unsound
+    if tp < 8.0:
+        strategy["take_profit_pct"] = 8.0
+        floors_applied = True
+
+    # SL ceiling: cannot exceed half TP (enforce >=2:1 ratio for positive EV)
+    if sl > strategy["take_profit_pct"] / 2.0:
+        strategy["stop_loss_pct"] = round(strategy["take_profit_pct"] / 2.0, 2)
+        floors_applied = True
+
+    # Momentum threshold floor: no noise entries
+    if mt < STAB_MOMENTUM_THRESHOLD:
+        strategy["momentum_threshold_1h"] = STAB_MOMENTUM_THRESHOLD
+        floors_applied = True
+
+    # ── Oscillation detection (separate from floors) ──
     # If locked, check if cooldown expired
     if stab["locked_until"] > time.time():
         stab["keys"].append(current_key)
         stab["keys"] = stab["keys"][-10:]  # keep recent history
-        stab["flip_count"] += 1
+        stab["flip_count"] = stab.get("flip_count", 0) + 1
         # Still oscillating while locked — extend cooldown
         stab["locked_until"] = time.time() + (STAB_COOLDOWN_HOURS * 3600)
         _save_stab_state(stab)
@@ -240,16 +284,21 @@ def stabilize_strategy(strategy):
         # Don't let preferred_asset flip either
         if "last_stable_asset" in stab:
             strategy["preferred_asset"] = stab["last_stable_asset"]
+        if floors_applied:
+            print(f"🔧 Strategy floors enforced (oscillation locked): TP={strategy['take_profit_pct']}%, SL={strategy['stop_loss_pct']}%, min_momentum={STAB_MOMENTUM_THRESHOLD}%")
         return strategy
 
-    # Check if config changed from last check
-    if stab["keys"] and current_key != stab["keys"][-1]:
-        stab["flip_count"] = stab.get("flip_count", 0) + 1
-    else:
-        stab["flip_count"] = 0
-
+    # BUG FIX v3: Compare against PREVIOUS key (second-to-last after append), not self.
+    # The research script oscillates ~every hour. With flip_threshold=2, lock triggers fast.
+    prev_key = stab["keys"][-1] if stab["keys"] else None
     stab["keys"].append(current_key)
     stab["keys"] = stab["keys"][-10:]
+
+    # Check if config changed from PREVIOUS check (compare before we appended)
+    if prev_key is not None and current_key != prev_key:
+        stab["flip_count"] = stab.get("flip_count", 0) + 1
+    else:
+        stab["flip_count"] = max(0, stab.get("flip_count", 0) - 1)  # decay flip count when stable
 
     # If we've seen enough flips, lock in conservative values
     if stab["flip_count"] >= STAB_FLIP_THRESHOLD:
@@ -259,9 +308,11 @@ def stabilize_strategy(strategy):
         stab["last_stable_asset"] = strategy.get("preferred_asset", "ETH-USD")
         strategy["take_profit_pct"] = STAB_TAKE_PROFIT
         strategy["stop_loss_pct"] = STAB_STOP_LOSS
-        print(f"🔒 Strategy oscillation detected ({stab['flip_count']} flips) — locked to TP={STAB_TAKE_PROFIT}%, SL={STAB_STOP_LOSS}% for {STAB_COOLDOWN_HOURS}h")
+        print(f"🔒 Strategy oscillation detected ({stab['flip_count']} flips) — locked to TP={STAB_TAKE_PROFIT}%, SL={STAB_STOP_LOSS}%, min_momentum={STAB_MOMENTUM_THRESHOLD}% for {STAB_COOLDOWN_HOURS}h")
 
     _save_stab_state(stab)
+    if floors_applied:
+        print(f"🔧 Strategy floors enforced: TP={strategy['take_profit_pct']}%, SL={strategy['stop_loss_pct']}%, min_momentum={strategy['momentum_threshold_1h']}%")
     return strategy
 
 # ── Market research ───────────────────────────────────────────────────────────
@@ -861,7 +912,9 @@ def decide_next_trade(state, cash, prices, total_balance):
         return None, "Not enough cash buffer (<$3)"
 
     # Noise filter: minimum threshold scales with drawdown severity
-    threshold = max(strategy["momentum_threshold_1h"], 0.3)  # floor: 0.3% minimum
+    # Hard floor from stabilize_strategy already ensures >= 0.3%, 
+    # so we only tighten further on drawdown
+    threshold = strategy["momentum_threshold_1h"]
     drawdown = (total_balance - state.get("start_balance", 40)) / state.get("start_balance", 40) * 100
     if drawdown < -5:
         threshold = max(threshold, 0.5)  # tighten when bleeding
