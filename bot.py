@@ -446,7 +446,7 @@ SCALP_ENTRY_MOVE_PCT = 1.0  # enter if XRP moved up >=1.0% since last check (rai
 SCALP_COOLDOWN_MINS = 8     # min minutes between scalp entries (raised from 5min — reduce overtrading)
 SCALP_TIME_STOP_MINS = 45   # force-exit any scalp open longer than 45 minutes (scalp ≠ bag hold, tightened from 60)
 SCALP_MAX_AGE_MINS = 120    # ABSOLUTE max: kill any scalp older than 2 hours (stale position guard, tightened from 4h)
-MAX_POSITION_AGE_HOURS = 48  # force-close any position held >48h regardless of PnL (raised from 24h — SOL was +1.7% at 72h, premature kills waste capital)
+MAX_POSITION_AGE_HOURS = 72  # force-close any position held >72h regardless of PnL (raised from 48h — let winners run in low-vol regime)
 
 def check_scalp(state, prices, cash, total):
     """
@@ -889,11 +889,8 @@ def should_rotate_position(state, prices, strategy):
         held_score = held_scores.get(sym, (0,))[0]
         alt_product_id, alt_sym, alt_score, alt_1h, alt_24h, alt_price = best_alt
 
-        # Rotation condition — strict to avoid fee-burning churn:
-        # - Position clearly losing (>3% down) — never rotate a winner or breakeven
-        # - Strong score edge (>1.2) — high conviction only, not noise
-        # - Held at least 6 hours — give position real time to work
-        # - 8-hour cooldown — each rotation burns ~1.2% round-trip in fees
+        # Rotation condition — EXTREME gate (6 rotations burned $0.42, avg edge 0.35)
+        # Each rotation burns ~0.8-1.2% round-trip — need MASSIVE conviction:
         rotation_edge = alt_score - held_score
         held_hours = (time.time() - pos.get("entry_time", time.time())) / 3600
 
@@ -901,12 +898,9 @@ def should_rotate_position(state, prices, strategy):
         if pnl_pct >= 0:
             continue
 
-        # Each rotation burns ~0.8-1.2% in round-trip fees — need STRONG conviction:
-        # - Position must be down >8% (deep loss, not noise — current SL is ~3.5-5%)
-        # - Alternative must have score edge > 3.0 (massive dislocation, not noise)
-        # - Held at least 3 hours (give position real time to work)
-        # - Total positions must exceed 1 (only rotate the LAST position, not the anchor)
-        if pnl_pct < -8.0 and rotation_edge > 3.0 and held_hours >= 3.0:
+        # Only rotate deep losses (>12% — past any reasonable SL) with STRONG alt signal
+        # Score edge > 5.0 = massive dislocation, not noise (was 3.0, too chatty)
+        if pnl_pct < -12.0 and rotation_edge > 5.0 and held_hours >= 6.0:
             # Check rotation cooldown
             last_rotate = state.get("last_rotation_time", 0)
             if time.time() - last_rotate < 28800:  # 8 hour cooldown
@@ -1181,14 +1175,14 @@ def run_hourly():
             exit_reason = f"TAKE-PROFIT HIT — ${current_price:.4f} >= ${target:.4f} (+{pnl_pct:.1f}%)"
         elif pnl_pct >= tp_pct * 0.4 and pos.get("peak_price", 0) > 0:
             # Progressive trailing: scales with profit level
-            # Starts at 40% of TP (was 50%, too early — killed ETH at +4% on 12% TP)
+            # Widened from v1 — was -1.5/-2.0/-3.0, too tight for small portfolio noise
             drawdown = (current_price - pos["peak_price"]) / pos["peak_price"] * 100
             if pnl_pct >= tp_pct * 0.75:
-                trail_threshold = -3.0  # wide trail for big winners
+                trail_threshold = -4.5  # let big winners ride
             elif pnl_pct >= tp_pct * 0.5:
-                trail_threshold = -2.0  # moderate trail at mid-profit
+                trail_threshold = -3.0  # moderate trail at mid-profit
             else:
-                trail_threshold = -1.5  # tight trail near breakeven
+                trail_threshold = -2.0  # wider early trail (was -1.5, killed ETH at +4.2%)
             if drawdown < trail_threshold:
                 should_exit = True
                 exit_reason = f"TRAILING EXIT — {pnl_pct:.1f}% up, reversing {drawdown:.1f}% from peak (trail threshold: {trail_threshold}%)"
