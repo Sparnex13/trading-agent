@@ -9,7 +9,7 @@
       "peak_price": 2049.96,
       "order_id": "08ac7acc-9ba1-4eee-b8d8-c41af66b4605",
       "entry_time": 1775373317.4372592,
-      "current_price": 2041.75
+      "current_price": 2041.51
     }
   },
   "trades": [
@@ -441,10 +441,6 @@
     }
   ],
   "balance_history": [
-    {
-      "time": "2026-04-04 23:17 UTC",
-      "value": 35.3976
-    },
     {
       "time": "2026-04-04 23:18 UTC",
       "value": 35.4045
@@ -3320,6 +3316,10 @@
     {
       "time": "2026-04-05 12:00 UTC",
       "value": 34.9931
+    },
+    {
+      "time": "2026-04-05 12:01 UTC",
+      "value": 34.9903
     }
   ],
   "start_balance": 40.0,
@@ -3334,19 +3334,6 @@
   },
   "last_day": 8,
   "activity_log": [
-    {
-      "time": "2026-04-05 09:53 UTC",
-      "cycle": 720,
-      "portfolio": 35.08,
-      "eth_price": 2044.98,
-      "eth_pnl_pct": -0.67,
-      "cash": 18.74,
-      "actions": [
-        "holding XRP -1.5%, ETH +0.2%"
-      ],
-      "xrp": "Positions: XRP -1.5%, ETH +0.2%",
-      "regime": "extreme_fear"
-    },
     {
       "time": "2026-04-05 09:54 UTC",
       "cycle": 720,
@@ -4893,18 +4880,22 @@
       ],
       "xrp": "Positions: ETH +0.0%",
       "regime": "extreme_fear"
+    },
+    {
+      "time": "2026-04-05 12:01 UTC",
+      "cycle": 720,
+      "portfolio": 34.99,
+      "eth_price": 2041.51,
+      "eth_pnl_pct": 0.0,
+      "cash": 23.52,
+      "actions": [
+        "holding ETH +0.0%"
+      ],
+      "xrp": "Positions: ETH +0.0%",
+      "regime": "extreme_fear"
     }
   ],
   "missed_opportunities": [
-    {
-      "time": "2026-04-05 11:15 UTC",
-      "asset": "BTC",
-      "reason": "Fully invested in ETH",
-      "signal": "+0.16% 1h | -0.15% 24h",
-      "price": 67058,
-      "est_gain_pct": 7.0,
-      "est_gain_usd": 0.74
-    },
     {
       "time": "2026-04-05 11:15 UTC",
       "asset": "BTC",
@@ -5342,6 +5333,15 @@
       "asset": "SOL",
       "reason": "Below threshold (+0.04% < 0.5%)",
       "signal": "+0.04% 1h | score=0.49 | RSI=21.3",
+      "price": 79.88,
+      "est_gain_pct": 7.0,
+      "est_gain_usd": 1.48
+    },
+    {
+      "time": "2026-04-05 12:01 UTC",
+      "asset": "SOL",
+      "reason": "Below threshold (+0.05% < 0.5%)",
+      "signal": "+0.05% 1h | score=0.35 | RSI=20.4",
       "price": 79.88,
       "est_gain_pct": 7.0,
       "est_gain_usd": 1.48
