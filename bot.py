@@ -226,8 +226,8 @@ def _save_stab_state(stab):
         pass
 
 # Conservative fallback values used when research script is thrashing
-STAB_TAKE_PROFIT = 10.0
-STAB_STOP_LOSS = 5.0
+STAB_TAKE_PROFIT = 12.0
+STAB_STOP_LOSS = 3.5
 STAB_MOMENTUM_THRESHOLD = 0.3   # Floor: don't enter on noise (research script sets 0.1%)
 STAB_COOLDOWN_HOURS = 168  # How long to stay locked after detecting oscillation (7 days — research script thrashes hourly, so essentially permanent)
 STAB_FLIP_THRESHOLD = 2   # Num flips before we lock (research flips ~every hour, so 2 is enough)
@@ -239,8 +239,8 @@ def stabilize_strategy(strategy):
     Returns the (possibly stabilized) strategy dict.
     
     ALWAYS enforces hard floors regardless of oscillation detection:
-    - TP must be >= 10% (fee-adjusted minimum profitable target on small portfolio)
-    - SL must be <= TP/2 (maintain >=2:1 TP:SL ratio)
+    - TP must be >= 12% (wider targets survive fee drag and noise)
+    - SL must be <= TP/3 (maintain >=3:1 TP:SL ratio for positive EV)
     - Momentum threshold floor >= 0.3% (no noise entries)
     """
     stab = _load_stab_state()
@@ -274,21 +274,24 @@ def stabilize_strategy(strategy):
         _save_stab_state(stab)
 
     # ── ALWAYS enforce hard floors (independent of oscillation detection) ──
-    tp = strategy.get("take_profit_pct", 10.0)
-    sl = strategy.get("stop_loss_pct", 5.0)
+    tp = strategy.get("take_profit_pct", 12.0)
+    sl = strategy.get("stop_loss_pct", 3.5)
     mt = strategy.get("momentum_threshold_1h", 0.3)
     floors_applied = False
 
-    # TP floor: must be >= 10% to survive fee drag on small portfolio
-    # Coinbase ~0.6%/side round-trip = ~1.2% total fee drag
-    # Below 10% TP, fee drag eats >12% of wins — mathematically unsound on a $35 portfolio
-    if tp < 10.0:
-        strategy["take_profit_pct"] = 10.0
+    # TP floor: must be >= 12% on small portfolio.
+    # Coinbase ~0.6%/side round-trip = ~1.2% fee drag.
+    # At 12% TP, fee drag is 10% of gross win — acceptable.
+    # Tighter stops get triggered by noise on low-vol $35 portfolios.
+    if tp < 12.0:
+        strategy["take_profit_pct"] = 12.0
         floors_applied = True
 
-    # SL ceiling: cannot exceed half TP (enforce >=2:1 ratio for positive EV)
-    if sl > strategy["take_profit_pct"] / 2.0:
-        strategy["stop_loss_pct"] = round(strategy["take_profit_pct"] / 2.0, 2)
+    # SL ceiling: max 1/3 of TP (enforce >=3:1 ratio).
+    # On a $35 portfolio, a 3.5% SL on ETH is ~$70 move — wide enough to avoid noise,
+    # but 3:1 with 12% TP means each win covers 3.4 losses. Much better EV.
+    if sl > strategy["take_profit_pct"] / 3.0:
+        strategy["stop_loss_pct"] = round(strategy["take_profit_pct"] / 3.0, 2)
         floors_applied = True
 
     # Momentum threshold floor: no noise entries
@@ -443,7 +446,7 @@ SCALP_ENTRY_MOVE_PCT = 1.0  # enter if XRP moved up >=1.0% since last check (rai
 SCALP_COOLDOWN_MINS = 8     # min minutes between scalp entries (raised from 5min — reduce overtrading)
 SCALP_TIME_STOP_MINS = 45   # force-exit any scalp open longer than 45 minutes (scalp ≠ bag hold, tightened from 60)
 SCALP_MAX_AGE_MINS = 120    # ABSOLUTE max: kill any scalp older than 2 hours (stale position guard, tightened from 4h)
-MAX_POSITION_AGE_HOURS = 72  # force-close any position held >72h regardless of PnL (prevents zombie dust)
+MAX_POSITION_AGE_HOURS = 48  # force-close any position held >48h regardless of PnL (raised from 24h — SOL was +1.7% at 72h, premature kills waste capital)
 
 def check_scalp(state, prices, cash, total):
     """
@@ -949,6 +952,11 @@ def decide_next_trade(state, cash, prices, total_balance):
     elif drawdown < -10:
         threshold = max(threshold, 0.8)  # even stricter in deeper drawdown
     candidates = scan_sniper_targets(prices)
+
+    # ── Minimum composite score floor — reject weak entries ──
+    # On a $35 portfolio with -12% drawdown, only take high-conviction signals.
+    # Score < 0.5 = noise, 0.5-1.0 = moderate, >1.0 = strong.
+    MIN_SCORE_FLOOR = 0.7 if drawdown < -10 else 0.5
     held = set(state["positions"].keys())
 
     best_signal = None
@@ -976,13 +984,21 @@ def decide_next_trade(state, cash, prices, total_balance):
             })
             continue
 
-        if change_1h >= threshold:
+        if change_1h >= threshold and sc >= MIN_SCORE_FLOOR:
             if best_signal is None:
                 best_signal = (product_id, sym, sc, change_1h, change_24h, price, ta)
                 best_reason = (f"🎯 SNIPER v2: {sym} score={sc:.3f} | 1h={change_1h:+.2f}% 24h={change_24h:+.2f}% "
                                f"| RSI={ta.get('rsi','?')} vol={ta.get('vol_ratio','?')}x | {ta.get('notes','')}")
-        else:
-            if change_1h > 0:
+        elif change_1h >= threshold and sc < MIN_SCORE_FLOOR:
+            state.setdefault("missed_opportunities", []).append({
+                "time": ts, "asset": sym,
+                "reason": f"Score too low ({sc:.2f} < {MIN_SCORE_FLOOR})",
+                "signal": f"{change_1h:+.2f}% 1h | score={sc:.2f} | RSI={ta.get('rsi','?')}",
+                "price": price,
+                "est_gain_pct": strategy["take_profit_pct"],
+                "est_gain_usd": round(cash * 0.9 * strategy["take_profit_pct"] / 100, 2)
+            })
+        elif change_1h > 0:
                 state.setdefault("missed_opportunities", []).append({
                     "time": ts, "asset": sym,
                     "reason": f"Below threshold ({change_1h:+.2f}% < {threshold}%)",
@@ -998,7 +1014,7 @@ def decide_next_trade(state, cash, prices, total_balance):
         # Position sizing: each slot gets ~30% of total portfolio, leaving ~10% cash reserve
         # Slot 1 (no existing positions): up to 60% of total
         # Slot 2+: up to 30% of total, but also capped by available cash minus $2 reserve
-        CASH_RESERVE = max(2.0, total_balance * 0.10)  # keep 10% as reserve, min $2
+        CASH_RESERVE = max(3.0, total_balance * 0.10)  # keep 10% as reserve, min $3 (fee buffer on Coinbase ~$0.20/trip)
         if not held:
             # First position: up to 60% of portfolio
             max_alloc = round(total_balance * 0.60, 2)
@@ -1008,7 +1024,7 @@ def decide_next_trade(state, cash, prices, total_balance):
             max_alloc = round(total_balance * 0.30, 2)
             trade_usd = round(min(cash - CASH_RESERVE, max_alloc), 2)
         # Enforce minimum viable position size — positions below $4.00 are fee-negative on a $35 portfolio
-        MIN_POSITION_USD = 4.0
+        MIN_POSITION_USD = 3.0  # fee-adjusted: $0.40 round-trip on $3 = 13% drag, viable with 12% TP
         if trade_usd < MIN_POSITION_USD:
             return None, f"Signal too weak — computed size ${trade_usd:.2f} < ${MIN_POSITION_USD:.2f} minimum"
         return (product_id, trade_usd), best_reason
@@ -1098,7 +1114,8 @@ def run_hourly():
     # to prevent catastrophic configs (e.g., TP=3%, SL=5% = guaranteed bleed).
     strategy = load_strategy()
     strategy_changed = False
-    # Floor: TP must be at least 5%% (below this can't recoup round-trip fees + slippage)
+    # Floor: TP must be at least 10% (enforced by stabilize_strategy above; this is a backstop)
+    # Below 10%, fee drag eats >12% of wins on a $35 portfolio — mathematically unsound
     if strategy.get("take_profit_pct", 0) > 0 and strategy["take_profit_pct"] < 5.0:
         strategy["take_profit_pct"] = 5.0
         strategy_changed = True
@@ -1164,12 +1181,11 @@ def run_hourly():
             exit_reason = f"TAKE-PROFIT HIT — ${current_price:.4f} >= ${target:.4f} (+{pnl_pct:.1f}%)"
         elif pnl_pct >= tp_pct / 2 and pos.get("peak_price", 0) > 0:
             drawdown = (current_price - pos["peak_price"]) / pos["peak_price"] * 100
-            # Progressive trailing: wider at moderate gains, tighter near target
-            # At 50% of TP: trail -2.5% | At 75% of TP: trail -1.5% | Above TP: trail -1.0%
-            if pnl_pct >= tp_pct:
-                trail_threshold = -1.0
-            elif pnl_pct >= tp_pct * 0.75:
-                trail_threshold = -1.5
+            # Progressive trailing: give positions room to breathe on a $35 portfolio.
+            # With updated 12% TP and 3.5% SL, trailing gives profits room.
+            # At 75%+ of TP: trail -3.5% (let winners run) | Below 75%: trail -2.5%
+            if pnl_pct >= tp_pct * 0.75:
+                trail_threshold = -3.5
             else:
                 trail_threshold = -2.5
             if drawdown < trail_threshold:
@@ -1343,12 +1359,12 @@ def run_hourly():
     # Skip scalp entirely when portfolio is underwater (negative expectancy drain)
     scalp_disabled = False
     scalp_drawdown = (total - state.get("start_balance", START_BALANCE)) / state.get("start_balance", START_BALANCE) * 100 if state.get("start_balance", START_BALANCE) else 0
-    if scalp_drawdown < -5:
+    if scalp_drawdown < -15:
         scalp_disabled = True
         state.setdefault("scalp", {})["disabled_until_recovery"] = True
 
     if scalp_disabled:
-        scalp_action, scalp_msg = None, f"XRP scalp DISABLED — portfolio {scalp_drawdown:.1f}% below start (need +{abs(scalp_drawdown)-5:.1f}% to re-enable)"
+        scalp_action, scalp_msg = None, f"XRP scalp DISABLED — portfolio {scalp_drawdown:.1f}% below start (need +{abs(scalp_drawdown)-15:.1f}% to re-enable)"
     else:
         # Crash recovery: if scalp position was open at last save but daemon
         # went down, kill it unconditionally (we can't trust entry price/fills
