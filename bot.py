@@ -229,7 +229,7 @@ def _save_stab_state(stab):
 STAB_TAKE_PROFIT = 10.0
 STAB_STOP_LOSS = 5.0
 STAB_MOMENTUM_THRESHOLD = 0.3   # Floor: don't enter on noise (research script sets 0.1%)
-STAB_COOLDOWN_HOURS = 48  # How long to stay locked after detecting oscillation (raised from 12h)
+STAB_COOLDOWN_HOURS = 168  # How long to stay locked after detecting oscillation (7 days — research script thrashes hourly, so essentially permanent)
 STAB_FLIP_THRESHOLD = 2   # Num flips before we lock (research flips ~every hour, so 2 is enough)
 
 def stabilize_strategy(strategy):
@@ -239,12 +239,39 @@ def stabilize_strategy(strategy):
     Returns the (possibly stabilized) strategy dict.
     
     ALWAYS enforces hard floors regardless of oscillation detection:
-    - TP must be >= 8% (fee-adjusted minimum profitable target)
+    - TP must be >= 10% (fee-adjusted minimum profitable target on small portfolio)
     - SL must be <= TP/2 (maintain >=2:1 TP:SL ratio)
     - Momentum threshold floor >= 0.3% (no noise entries)
     """
     stab = _load_stab_state()
     current_key = _strategy_flip_key(strategy)
+
+    # ── Recovery: if lock expired but we have proven lock values, re-lock ──
+    # (prevents research script from immediately thrashing after cooldown)
+    if stab["locked_until"] <= time.time() and stab.get("lock_tp") and stab.get("lock_sl"):
+        tp_val = strategy.get("take_profit_pct", 10.0)
+        sl_val = strategy.get("stop_loss_pct", 5.0)
+        mt_val = strategy.get("momentum_threshold_1h", 0.3)
+        # If strategy values diverge from locked values, re-lock immediately
+        if tp_val != stab["lock_tp"] or sl_val != stab["lock_sl"]:
+            stab["locked_until"] = time.time() + (STAB_COOLDOWN_HOURS * 3600)
+            strategy["take_profit_pct"] = stab["lock_tp"]
+            strategy["stop_loss_pct"] = stab["lock_sl"]
+            strategy["momentum_threshold_1h"] = STAB_MOMENTUM_THRESHOLD
+            if "last_stable_asset" in stab:
+                strategy["preferred_asset"] = stab["last_stable_asset"]
+            _save_stab_state(stab)
+            print(f"\U0001f512 Strategy recovery re-lock: TP={stab['lock_tp']}%, SL={stab['lock_sl']}%, mom={STAB_MOMENTUM_THRESHOLD}% (lock expired but values drifted — re-locked)")
+            return strategy
+        # Values match locked ones — check if momentum also drifted
+        if mt_val < STAB_MOMENTUM_THRESHOLD:
+            strategy["momentum_threshold_1h"] = STAB_MOMENTUM_THRESHOLD
+            _save_stab_state(stab)
+        # Values match locked ones AND momentum is fine — clear lock, allow research script to run
+        stab["keys"] = []
+        stab["flip_count"] = 0
+        stab["locked_until"] = 0
+        _save_stab_state(stab)
 
     # ── ALWAYS enforce hard floors (independent of oscillation detection) ──
     tp = strategy.get("take_profit_pct", 10.0)
@@ -252,11 +279,11 @@ def stabilize_strategy(strategy):
     mt = strategy.get("momentum_threshold_1h", 0.3)
     floors_applied = False
 
-    # TP floor: must be >= 8% to survive fee drag on small portfolio
+    # TP floor: must be >= 10% to survive fee drag on small portfolio
     # Coinbase ~0.6%/side round-trip = ~1.2% total fee drag
-    # Below 8% TP, fee drag eats >15% of wins — mathematically unsound
-    if tp < 8.0:
-        strategy["take_profit_pct"] = 8.0
+    # Below 10% TP, fee drag eats >12% of wins — mathematically unsound on a $35 portfolio
+    if tp < 10.0:
+        strategy["take_profit_pct"] = 10.0
         floors_applied = True
 
     # SL ceiling: cannot exceed half TP (enforce >=2:1 ratio for positive EV)
@@ -414,8 +441,9 @@ SCALP_TARGET_PCT = 4.5      # take profit at +4.5% (net ~3.3% after 1.2% round-t
 SCALP_STOP_PCT = 1.5        # stop loss at -1.5% (net -2.7% after fees — 1.2:1 net ratio, BE ~45% WR)
 SCALP_ENTRY_MOVE_PCT = 1.0  # enter if XRP moved up >=1.0% since last check (raised from 0.8% — need cleaner signals in low-vol markets)
 SCALP_COOLDOWN_MINS = 8     # min minutes between scalp entries (raised from 5min — reduce overtrading)
-SCALP_TIME_STOP_MINS = 60   # force-exit any scalp open longer than 60 minutes (scalp ≠ bag hold)
-SCALP_MAX_AGE_MINS = 240    # ABSOLUTE max: kill any scalp older than 4 hours (stale position guard)
+SCALP_TIME_STOP_MINS = 45   # force-exit any scalp open longer than 45 minutes (scalp ≠ bag hold, tightened from 60)
+SCALP_MAX_AGE_MINS = 120    # ABSOLUTE max: kill any scalp older than 2 hours (stale position guard, tightened from 4h)
+MAX_POSITION_AGE_HOURS = 72  # force-close any position held >72h regardless of PnL (prevents zombie dust)
 
 def check_scalp(state, prices, cash, total):
     """
@@ -1263,6 +1291,51 @@ def run_hourly():
                     # Estimate based on a 30% slot allocation (realistic per-position sizing)
                     "est_gain_usd": round(total * 0.30 * strategy["take_profit_pct"] / 100, 2)
                 })
+
+    # ── Zombie position cleanup: force-close stale positions past max age ──
+    expired = []
+    for sym, pos in list(state["positions"].items()):
+        age_h = (time.time() - pos.get("entry_time", 0)) / 3600
+        if age_h > MAX_POSITION_AGE_HOURS:
+            product_id = f"{sym}-USD"
+            current_price = prices.get(sym, {}).get("price") or pos.get("current_price") or pos["entry"]
+            entry = pos["entry"]
+            pnl_pct = (current_price - entry) / entry * 100 if entry else 0
+            expired.append((sym, product_id, pos, current_price, f"MAX AGE KILL — held {age_h:.1f}h (limit: {MAX_POSITION_AGE_HOURS}h) | PnL: {pnl_pct:+.2f}%"))
+    # Process expired positions (sell before normal exit logic)
+    for sym, product_id, pos, current_price, exit_reason in expired:
+        report_lines.append(f"  💀 **ZOMBIE KILL:** {exit_reason}")
+        live_qty = live_positions.get(sym, {}).get("qty", pos["qty"])
+        status, result = market_sell(product_id, f"{live_qty:.8f}")
+        if result.get("success"):
+            order_id = result["success_response"]["order_id"]
+            time.sleep(1)
+            order = get_order(order_id)
+            exit_price = float(order.get("average_filled_price", current_price))
+            realized_pnl = (exit_price - pos["entry"]) * pos["qty"]
+            held_h = round((time.time() - pos.get("entry_time", time.time())) / 3600, 1)
+            state["trades"].append({
+                "time": ts, "asset": sym, "side": "SELL",
+                "qty": pos["qty"], "entry": pos["entry"], "exit": exit_price,
+                "sizeUsd": pos.get("size_usd", 0),
+                "pnl": realized_pnl, "reason": exit_reason,
+                "strategy_context": f"Zombie kill: {sym} @ ${exit_price:.4f} | Entry ${pos['entry']:.4f} | Held {held_h}h | P&L ${realized_pnl:+.3f}",
+                "signals": ["zombie-kill", f"age: {held_h:.0f}h"]
+            })
+            if sym in state["positions"]:
+                del state["positions"][sym]
+            actions_taken.append(f"💀 Zombie kill {sym} @ ${exit_price:.4f} | P&L: ${realized_pnl:+.3f} (held {held_h:.1f}h)")
+            report_lines.append(f"  ✅ **SOLD** @ ${exit_price:.4f} | Realized P&L: ${realized_pnl:+.3f}")
+        else:
+            # If sell failed, remove from tracking anyway to prevent permanent zombie
+            if sym in state["positions"]:
+                del state["positions"][sym]
+            actions_taken.append(f"💀 Zombie {sym} removed (sell failed, cleaned state)")
+
+    # Refresh portfolio after zombie cleanup
+    if expired:
+        time.sleep(1)
+        total, cash, live_positions = get_portfolio()
 
     # ── XRP Scalp Layer — crash recovery kill stale positions ──
     xrp_price = prices.get("XRP", {}).get("price", 0)
