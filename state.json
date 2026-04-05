@@ -408,10 +408,6 @@
   ],
   "balance_history": [
     {
-      "time": "2026-04-04 18:27 UTC",
-      "value": 35.4525
-    },
-    {
       "time": "2026-04-04 18:28 UTC",
       "value": 35.4524
     },
@@ -3286,6 +3282,10 @@
     {
       "time": "2026-04-05 07:08 UTC",
       "value": 35.178
+    },
+    {
+      "time": "2026-04-05 07:09 UTC",
+      "value": 35.1783
     }
   ],
   "start_balance": 40.0,
@@ -3300,19 +3300,6 @@
   },
   "last_day": 8,
   "activity_log": [
-    {
-      "time": "2026-04-05 05:01 UTC",
-      "cycle": 720,
-      "portfolio": 35.24,
-      "eth_price": 2054.71,
-      "eth_pnl_pct": -0.76,
-      "cash": 29.29,
-      "actions": [
-        "holding XRP -0.8%"
-      ],
-      "xrp": "Positions: XRP -0.8%",
-      "regime": "extreme_fear"
-    },
     {
       "time": "2026-04-05 05:02 UTC",
       "cycle": 720,
@@ -4859,18 +4846,22 @@
       ],
       "xrp": "Positions: XRP -1.5%",
       "regime": "extreme_fear"
+    },
+    {
+      "time": "2026-04-05 07:09 UTC",
+      "cycle": 720,
+      "portfolio": 35.18,
+      "eth_price": 2039.9,
+      "eth_pnl_pct": -1.52,
+      "cash": 29.29,
+      "actions": [
+        "holding XRP -1.5%"
+      ],
+      "xrp": "Positions: XRP -1.5%",
+      "regime": "extreme_fear"
     }
   ],
   "missed_opportunities": [
-    {
-      "time": "2026-04-05 04:31 UTC",
-      "asset": "ETH",
-      "reason": "Below threshold (+0.05% < 0.5%)",
-      "signal": "+0.05% 1h | score=0.30 | RSI=54.2",
-      "price": 2057.21,
-      "est_gain_pct": 10.0,
-      "est_gain_usd": 2.64
-    },
     {
       "time": "2026-04-05 04:33 UTC",
       "asset": "BTC",
@@ -5309,6 +5300,15 @@
       "reason": "Below threshold (+0.08% < 0.5%)",
       "signal": "+0.08% 1h | score=0.45 | RSI=27.2",
       "price": 66860,
+      "est_gain_pct": 7.0,
+      "est_gain_usd": 1.85
+    },
+    {
+      "time": "2026-04-05 07:09 UTC",
+      "asset": "BTC",
+      "reason": "Below threshold (+0.08% < 0.5%)",
+      "signal": "+0.08% 1h | score=0.45 | RSI=27.5",
+      "price": 66862,
       "est_gain_pct": 7.0,
       "est_gain_usd": 1.85
     }
