@@ -19,7 +19,7 @@
       "peak_price": 2041.4121634700155,
       "order_id": "08ac7acc-9ba1-4eee-b8d8-c41af66b4605",
       "entry_time": 1775373317.4372592,
-      "current_price": 2037.54
+      "current_price": 2037.18
     }
   },
   "trades": [
@@ -435,10 +435,6 @@
     }
   ],
   "balance_history": [
-    {
-      "time": "2026-04-04 20:12 UTC",
-      "value": 35.4352
-    },
     {
       "time": "2026-04-04 20:13 UTC",
       "value": 35.4389
@@ -3314,6 +3310,10 @@
     {
       "time": "2026-04-05 08:53 UTC",
       "value": 35.0196
+    },
+    {
+      "time": "2026-04-05 08:54 UTC",
+      "value": 35.0198
     }
   ],
   "start_balance": 40.0,
@@ -3328,19 +3328,6 @@
   },
   "last_day": 8,
   "activity_log": [
-    {
-      "time": "2026-04-05 06:47 UTC",
-      "cycle": 720,
-      "portfolio": 35.19,
-      "eth_price": 2038.45,
-      "eth_pnl_pct": -1.52,
-      "cash": 29.29,
-      "actions": [
-        "holding XRP -1.5%"
-      ],
-      "xrp": "Positions: XRP -1.5%",
-      "regime": "extreme_fear"
-    },
     {
       "time": "2026-04-05 06:48 UTC",
       "cycle": 720,
@@ -4887,18 +4874,22 @@
       ],
       "xrp": "Positions: XRP -1.5%, ETH -0.2%",
       "regime": "extreme_fear"
+    },
+    {
+      "time": "2026-04-05 08:54 UTC",
+      "cycle": 720,
+      "portfolio": 35.02,
+      "eth_price": 2037.18,
+      "eth_pnl_pct": -0.86,
+      "cash": 18.74,
+      "actions": [
+        "holding XRP -1.5%, ETH -0.2%"
+      ],
+      "xrp": "Positions: XRP -1.5%, ETH -0.2%",
+      "regime": "extreme_fear"
     }
   ],
   "missed_opportunities": [
-    {
-      "time": "2026-04-05 07:14 UTC",
-      "asset": "BTC",
-      "reason": "Fully invested in XRP",
-      "signal": "+0.31% 1h | -0.17% 24h",
-      "price": 66859,
-      "est_gain_pct": 7.0,
-      "est_gain_usd": 0.74
-    },
     {
       "time": "2026-04-05 07:14 UTC",
       "asset": "ETH",
@@ -5337,6 +5328,15 @@
       "reason": "Fully invested in XRP, ETH",
       "signal": "+0.15% 1h | -0.06% 24h",
       "price": 66875,
+      "est_gain_pct": 7.0,
+      "est_gain_usd": 0.74
+    },
+    {
+      "time": "2026-04-05 08:54 UTC",
+      "asset": "BTC",
+      "reason": "Fully invested in XRP, ETH",
+      "signal": "+0.15% 1h | -0.06% 24h",
+      "price": 66873,
       "est_gain_pct": 7.0,
       "est_gain_usd": 0.74
     }
