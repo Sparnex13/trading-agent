@@ -615,7 +615,7 @@ def check_scalp(state, prices, cash, total):
                 "qty": qty, "entry": entry_price, "exit": None,
                 "sizeUsd": trade_usd, "pnl": None,
                 "reason": f"SCALP ENTRY — XRP moved {price_move_pct:+.2f}% in last check (threshold: +{SCALP_ENTRY_MOVE_PCT}%)",
-                "strategy_context": f"Micro-scalp: target +{SCALP_TARGET_PCT}% (${entry_price*1.015:.4f}) | stop -{SCALP_STOP_PCT}% (${entry_price*0.994:.4f})",
+                "strategy_context": f"Micro-scalp: target +{SCALP_TARGET_PCT}% (${entry_price*1.045:.4f}) | stop -{SCALP_STOP_PCT}% (${entry_price*0.985:.4f})",
                 "signals": [f"scalp", f"move: {price_move_pct:+.2f}%", f"XRP ${entry_price:.4f}"]
             })
             return "buy", f"⚡ XRP SCALP ENTRY @ ${entry_price:.4f} | ${trade_usd:.2f} | TP: ${entry_price*1.015:.4f} | SL: ${entry_price*0.994:.4f}"
@@ -1073,7 +1073,7 @@ def run_hourly():
     # Remove state entries for positions no longer held or below dust threshold
     strategy = load_strategy()
     tp_pct = strategy["take_profit_pct"]
-    sl_pct = min(strategy["stop_loss_pct"], tp_pct / 2.0)
+    sl_pct = min(strategy["stop_loss_pct"], tp_pct / 3.0)  # 3:1 ratio floor
     for sym in list(state["positions"].keys()):
         lp = live_positions.get(sym, {})
         live_qty = lp.get("qty", 0)
@@ -1159,9 +1159,9 @@ def run_hourly():
         pnl_pct = (current_price - entry) / entry * 100
         unrealized_pnl = (current_price - entry) * pos["qty"]
         strategy = load_strategy()
-        # Enforce TP:SL ≥ 2.0:1
+        # Enforce TP:SL ≥ 3.0:1 (match stabilize_strategy floors)
         tp_pct = strategy["take_profit_pct"]
-        sl_pct = min(strategy["stop_loss_pct"], tp_pct / 2.0)
+        sl_pct = min(strategy["stop_loss_pct"], tp_pct / 3.0)
         stop = entry * (1 - sl_pct / 100)
         target = entry * (1 + tp_pct / 100)
         pos["stop_loss"] = stop
@@ -1179,15 +1179,16 @@ def run_hourly():
         elif current_price >= target:
             should_exit = True
             exit_reason = f"TAKE-PROFIT HIT — ${current_price:.4f} >= ${target:.4f} (+{pnl_pct:.1f}%)"
-        elif pnl_pct >= tp_pct / 2 and pos.get("peak_price", 0) > 0:
+        elif pnl_pct >= tp_pct * 0.4 and pos.get("peak_price", 0) > 0:
+            # Progressive trailing: scales with profit level
+            # Starts at 40% of TP (was 50%, too early — killed ETH at +4% on 12% TP)
             drawdown = (current_price - pos["peak_price"]) / pos["peak_price"] * 100
-            # Progressive trailing: give positions room to breathe on a $35 portfolio.
-            # With updated 12% TP and 3.5% SL, trailing gives profits room.
-            # At 75%+ of TP: trail -3.5% (let winners run) | Below 75%: trail -2.5%
             if pnl_pct >= tp_pct * 0.75:
-                trail_threshold = -3.5
+                trail_threshold = -3.0  # wide trail for big winners
+            elif pnl_pct >= tp_pct * 0.5:
+                trail_threshold = -2.0  # moderate trail at mid-profit
             else:
-                trail_threshold = -2.5
+                trail_threshold = -1.5  # tight trail near breakeven
             if drawdown < trail_threshold:
                 should_exit = True
                 exit_reason = f"TRAILING EXIT — {pnl_pct:.1f}% up, reversing {drawdown:.1f}% from peak (trail threshold: {trail_threshold}%)"
@@ -1267,7 +1268,7 @@ def run_hourly():
                 qty = float(order.get("filled_size", 0))
                 strategy = load_strategy()
                 tp_pct = strategy["take_profit_pct"]
-                sl_pct = min(strategy["stop_loss_pct"], tp_pct / 2.0)
+                sl_pct = min(strategy["stop_loss_pct"], tp_pct / 3.0)  # 3:1 ratio floor
                 stop = entry_price * (1 - sl_pct / 100)
                 target = entry_price * (1 + tp_pct / 100)
                 state["positions"][rot_sym] = {
@@ -1455,9 +1456,9 @@ def run_hourly():
                 entry_price = float(order.get("average_filled_price", current_asset_price))
                 qty = float(order.get("filled_size", 0))
                 strategy = load_strategy()
-                # Enforce ≥2:1 TP:SL at entry (hard floor, overrides misconfigured strategy)
+                # Enforce ≥3:1 TP:SL at entry (hard floor, overrides misconfigured strategy)
                 tp_pct = strategy["take_profit_pct"]
-                sl_pct = min(strategy["stop_loss_pct"], tp_pct / 2.0)
+                sl_pct = min(strategy["stop_loss_pct"], tp_pct / 3.0)
                 stop = entry_price * (1 - sl_pct / 100)
                 target = entry_price * (1 + tp_pct / 100)
                 asset_1h = prices.get(sym, {}).get("change_1h", 0) or 0
