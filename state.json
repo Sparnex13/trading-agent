@@ -9,7 +9,7 @@
       "peak_price": 82.24,
       "order_id": "a243bbb8-8199-457d-84c6-1d3842bf90d6",
       "entry_time": 1775583203.4621725,
-      "current_price": 82.08
+      "current_price": 82.06
     }
   },
   "trades": [
@@ -508,10 +508,6 @@
     }
   ],
   "balance_history": [
-    {
-      "time": "2026-04-07 07:04 UTC",
-      "value": 35.0144
-    },
     {
       "time": "2026-04-07 07:04 UTC",
       "value": 35.0081
@@ -3387,6 +3383,10 @@
     {
       "time": "2026-04-07 20:46 UTC",
       "value": 35.2286
+    },
+    {
+      "time": "2026-04-07 20:47 UTC",
+      "value": 35.2166
     }
   ],
   "start_balance": 40.0,
@@ -3401,19 +3401,6 @@
   },
   "last_day": 10,
   "activity_log": [
-    {
-      "time": "2026-04-07 19:22 UTC",
-      "cycle": 720,
-      "portfolio": 34.89,
-      "eth_price": 2095.81,
-      "eth_pnl_pct": 1.23,
-      "cash": 3.48,
-      "actions": [
-        "holding SOL +1.2%"
-      ],
-      "xrp": "Positions: SOL +1.2%",
-      "regime": "extreme_fear"
-    },
     {
       "time": "2026-04-07 19:22 UTC",
       "cycle": 720,
@@ -4960,36 +4947,22 @@
       ],
       "xrp": "Positions: SOL +2.8%",
       "regime": "extreme_fear"
+    },
+    {
+      "time": "2026-04-07 20:47 UTC",
+      "cycle": 720,
+      "portfolio": 35.22,
+      "eth_price": 2115.84,
+      "eth_pnl_pct": 2.77,
+      "cash": 3.48,
+      "actions": [
+        "holding SOL +2.8%"
+      ],
+      "xrp": "Positions: SOL +2.8%",
+      "regime": "extreme_fear"
     }
   ],
   "missed_opportunities": [
-    {
-      "time": "2026-04-07 20:30 UTC",
-      "asset": "ETH",
-      "reason": "Fully invested in SOL",
-      "signal": "+1.08% 1h | -1.70% 24h",
-      "price": 2115.54,
-      "est_gain_pct": 12.0,
-      "est_gain_usd": 1.27
-    },
-    {
-      "time": "2026-04-07 20:30 UTC",
-      "asset": "XRP",
-      "reason": "Fully invested in SOL",
-      "signal": "+0.90% 1h | -1.79% 24h",
-      "price": 1.32,
-      "est_gain_pct": 12.0,
-      "est_gain_usd": 1.27
-    },
-    {
-      "time": "2026-04-07 20:31 UTC",
-      "asset": "BTC",
-      "reason": "Fully invested in SOL",
-      "signal": "+1.25% 1h | -0.84% 24h",
-      "price": 69357,
-      "est_gain_pct": 12.0,
-      "est_gain_usd": 1.27
-    },
     {
       "time": "2026-04-07 20:31 UTC",
       "asset": "ETH",
@@ -5412,6 +5385,33 @@
       "price": 1.32,
       "est_gain_pct": 12.0,
       "est_gain_usd": 1.27
+    },
+    {
+      "time": "2026-04-07 20:47 UTC",
+      "asset": "BTC",
+      "reason": "Fully invested in SOL",
+      "signal": "+0.57% 1h | -0.89% 24h",
+      "price": 69281,
+      "est_gain_pct": 12.0,
+      "est_gain_usd": 1.27
+    },
+    {
+      "time": "2026-04-07 20:47 UTC",
+      "asset": "ETH",
+      "reason": "Fully invested in SOL",
+      "signal": "+0.41% 1h | -1.61% 24h",
+      "price": 2115.84,
+      "est_gain_pct": 12.0,
+      "est_gain_usd": 1.27
+    },
+    {
+      "time": "2026-04-07 20:47 UTC",
+      "asset": "XRP",
+      "reason": "Fully invested in SOL",
+      "signal": "+0.50% 1h | -1.74% 24h",
+      "price": 1.32,
+      "est_gain_pct": 12.0,
+      "est_gain_usd": 1.27
     }
   ],
   "last_sell_price": 2067.03,
@@ -5451,31 +5451,31 @@
         60.0
       ],
       [
+        10.0,
+        5.0,
+        "SOL-USD",
+        0.1,
+        60.0
+      ],
+      [
+        10.0,
+        5.0,
+        "SOL-USD",
+        0.1,
+        60.0
+      ],
+      [
+        10.0,
+        5.0,
+        "SOL-USD",
+        0.1,
+        60.0
+      ],
+      [
         12.0,
         3.5,
         "SOL-USD",
         0.3,
-        60.0
-      ],
-      [
-        10.0,
-        5.0,
-        "SOL-USD",
-        0.1,
-        60.0
-      ],
-      [
-        10.0,
-        5.0,
-        "SOL-USD",
-        0.1,
-        60.0
-      ],
-      [
-        10.0,
-        5.0,
-        "SOL-USD",
-        0.1,
         60.0
       ],
       [
@@ -5493,8 +5493,8 @@
         60.0
       ]
     ],
-    "flip_count": 727,
-    "locked_until": 1776199529.471412,
+    "flip_count": 728,
+    "locked_until": 1776199592.4569743,
     "lock_tp": 12.0,
     "lock_sl": 3.5
   }
