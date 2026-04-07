@@ -509,10 +509,6 @@
   ],
   "balance_history": [
     {
-      "time": "2026-04-07 05:02 UTC",
-      "value": 35.147
-    },
-    {
       "time": "2026-04-07 05:03 UTC",
       "value": 35.1472
     },
@@ -3387,6 +3383,10 @@
     {
       "time": "2026-04-07 18:33 UTC",
       "value": 34.8123
+    },
+    {
+      "time": "2026-04-07 18:33 UTC",
+      "value": 34.8129
     }
   ],
   "start_balance": 40.0,
@@ -3401,19 +3401,6 @@
   },
   "last_day": 10,
   "activity_log": [
-    {
-      "time": "2026-04-07 17:28 UTC",
-      "cycle": 720,
-      "portfolio": 34.78,
-      "eth_price": 2084.7,
-      "eth_pnl_pct": 0,
-      "cash": 12.66,
-      "actions": [
-        "holding cash"
-      ],
-      "xrp": "Positions: none",
-      "regime": "extreme_fear"
-    },
     {
       "time": "2026-04-07 17:29 UTC",
       "cycle": 720,
@@ -4960,18 +4947,22 @@
       ],
       "xrp": "Positions: SOL +0.3%",
       "regime": "extreme_fear"
+    },
+    {
+      "time": "2026-04-07 18:33 UTC",
+      "cycle": 720,
+      "portfolio": 34.81,
+      "eth_price": 2095.91,
+      "eth_pnl_pct": 0.25,
+      "cash": 3.48,
+      "actions": [
+        "holding SOL +0.3%"
+      ],
+      "xrp": "Positions: SOL +0.3%",
+      "regime": "extreme_fear"
     }
   ],
   "missed_opportunities": [
-    {
-      "time": "2026-04-07 18:19 UTC",
-      "asset": "XRP",
-      "reason": "Fully invested in SOL",
-      "signal": "+0.64% 1h | -2.39% 24h",
-      "price": 1.31,
-      "est_gain_pct": 12.0,
-      "est_gain_usd": 1.25
-    },
     {
       "time": "2026-04-07 18:19 UTC",
       "asset": "BTC",
@@ -5410,6 +5401,15 @@
       "reason": "Fully invested in SOL",
       "signal": "+0.34% 1h | -2.27% 24h",
       "price": 2095.59,
+      "est_gain_pct": 12.0,
+      "est_gain_usd": 1.25
+    },
+    {
+      "time": "2026-04-07 18:33 UTC",
+      "asset": "ETH",
+      "reason": "Fully invested in SOL",
+      "signal": "+0.35% 1h | -2.26% 24h",
+      "price": 2095.91,
       "est_gain_pct": 12.0,
       "est_gain_usd": 1.25
     }
