@@ -5,11 +5,11 @@
       "entry": 79.85,
       "stop_loss": 77.05524999999999,
       "target": 89.432,
-      "size_usd": 9.56,
+      "size_usd": 9.57,
       "peak_price": 84.53,
       "order_id": "a243bbb8-8199-457d-84c6-1d3842bf90d6",
       "entry_time": 1775583203.4621725,
-      "current_price": 84.17
+      "current_price": 84.27
     }
   },
   "trades": [
@@ -508,10 +508,6 @@
     }
   ],
   "balance_history": [
-    {
-      "time": "2026-04-07 08:36 UTC",
-      "value": 35.1422
-    },
     {
       "time": "2026-04-07 08:36 UTC",
       "value": 35.1384
@@ -3386,7 +3382,11 @@
     },
     {
       "time": "2026-04-07 22:48 UTC",
-      "value": 36.1887
+      "value": 36.1923
+    },
+    {
+      "time": "2026-04-07 22:49 UTC",
+      "value": 36.2091
     }
   ],
   "start_balance": 40.0,
@@ -3401,19 +3401,6 @@
   },
   "last_day": 10,
   "activity_log": [
-    {
-      "time": "2026-04-07 21:18 UTC",
-      "cycle": 720,
-      "portfolio": 35.52,
-      "eth_price": 2142.1,
-      "eth_pnl_pct": 3.57,
-      "cash": 3.48,
-      "actions": [
-        "holding SOL +3.6%"
-      ],
-      "xrp": "Positions: SOL +3.6%",
-      "regime": "extreme_fear"
-    },
     {
       "time": "2026-04-07 21:18 UTC",
       "cycle": 720,
@@ -4960,36 +4947,22 @@
       ],
       "xrp": "Positions: SOL +5.4%",
       "regime": "extreme_fear"
+    },
+    {
+      "time": "2026-04-07 22:49 UTC",
+      "cycle": 720,
+      "portfolio": 36.21,
+      "eth_price": 2182.81,
+      "eth_pnl_pct": 5.54,
+      "cash": 3.48,
+      "actions": [
+        "holding SOL +5.5%"
+      ],
+      "xrp": "Positions: SOL +5.5%",
+      "regime": "extreme_fear"
     }
   ],
   "missed_opportunities": [
-    {
-      "time": "2026-04-07 22:31 UTC",
-      "asset": "ETH",
-      "reason": "Fully invested in SOL",
-      "signal": "+1.25% 1h | +1.39% 24h",
-      "price": 2160.42,
-      "est_gain_pct": 12.0,
-      "est_gain_usd": 1.29
-    },
-    {
-      "time": "2026-04-07 22:31 UTC",
-      "asset": "XRP",
-      "reason": "Fully invested in SOL",
-      "signal": "+0.89% 1h | +0.84% 24h",
-      "price": 1.34,
-      "est_gain_pct": 12.0,
-      "est_gain_usd": 1.29
-    },
-    {
-      "time": "2026-04-07 22:32 UTC",
-      "asset": "BTC",
-      "reason": "Fully invested in SOL",
-      "signal": "+1.10% 1h | +1.72% 24h",
-      "price": 70446,
-      "est_gain_pct": 12.0,
-      "est_gain_usd": 1.3
-    },
     {
       "time": "2026-04-07 22:32 UTC",
       "asset": "ETH",
@@ -5412,6 +5385,33 @@
       "price": 1.36,
       "est_gain_pct": 12.0,
       "est_gain_usd": 1.3
+    },
+    {
+      "time": "2026-04-07 22:49 UTC",
+      "asset": "BTC",
+      "reason": "Fully invested in SOL",
+      "signal": "+1.50% 1h | +2.54% 24h",
+      "price": 70937,
+      "est_gain_pct": 12.0,
+      "est_gain_usd": 1.3
+    },
+    {
+      "time": "2026-04-07 22:49 UTC",
+      "asset": "ETH",
+      "reason": "Fully invested in SOL",
+      "signal": "+1.86% 1h | +2.62% 24h",
+      "price": 2182.81,
+      "est_gain_pct": 12.0,
+      "est_gain_usd": 1.3
+    },
+    {
+      "time": "2026-04-07 22:49 UTC",
+      "asset": "XRP",
+      "reason": "Fully invested in SOL",
+      "signal": "+1.59% 1h | +2.37% 24h",
+      "price": 1.36,
+      "est_gain_pct": 12.0,
+      "est_gain_usd": 1.3
     }
   ],
   "last_sell_price": 2067.03,
@@ -5493,8 +5493,8 @@
         60.0
       ]
     ],
-    "flip_count": 744,
-    "locked_until": 1776206867.097234,
+    "flip_count": 745,
+    "locked_until": 1776206930.9701886,
     "lock_tp": 12.0,
     "lock_sl": 3.5
   }
