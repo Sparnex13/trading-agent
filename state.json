@@ -509,10 +509,6 @@
   ],
   "balance_history": [
     {
-      "time": "2026-04-07 09:43 UTC",
-      "value": 35.3519
-    },
-    {
       "time": "2026-04-07 09:44 UTC",
       "value": 35.3391
     },
@@ -3387,6 +3383,10 @@
     {
       "time": "2026-04-08 00:05 UTC",
       "value": 36.7639
+    },
+    {
+      "time": "2026-04-08 00:06 UTC",
+      "value": 36.7975
     }
   ],
   "start_balance": 40.0,
@@ -3401,19 +3401,6 @@
   },
   "last_day": 10,
   "activity_log": [
-    {
-      "time": "2026-04-07 22:57 UTC",
-      "cycle": 720,
-      "portfolio": 36.35,
-      "eth_price": 2194.22,
-      "eth_pnl_pct": 5.95,
-      "cash": 3.48,
-      "actions": [
-        "holding SOL +5.9%"
-      ],
-      "xrp": "Positions: SOL +5.9%",
-      "regime": "extreme_fear"
-    },
     {
       "time": "2026-04-07 22:58 UTC",
       "cycle": 720,
@@ -4960,45 +4947,22 @@
       ],
       "xrp": "Positions: SOL +7.2%",
       "regime": "extreme_fear"
+    },
+    {
+      "time": "2026-04-08 00:06 UTC",
+      "cycle": 720,
+      "portfolio": 36.8,
+      "eth_price": 2241.65,
+      "eth_pnl_pct": 7.16,
+      "cash": 3.48,
+      "actions": [
+        "holding SOL +7.2%"
+      ],
+      "xrp": "Positions: SOL +7.2%",
+      "regime": "extreme_fear"
     }
   ],
   "missed_opportunities": [
-    {
-      "time": "2026-04-07 23:54 UTC",
-      "asset": "BTC",
-      "reason": "Fully invested in SOL",
-      "signal": "+1.37% 1h | +4.84% 24h",
-      "price": 72173,
-      "est_gain_pct": 12.0,
-      "est_gain_usd": 1.33
-    },
-    {
-      "time": "2026-04-07 23:54 UTC",
-      "asset": "ETH",
-      "reason": "Fully invested in SOL",
-      "signal": "+2.72% 1h | +6.93% 24h",
-      "price": 2253.09,
-      "est_gain_pct": 12.0,
-      "est_gain_usd": 1.33
-    },
-    {
-      "time": "2026-04-07 23:54 UTC",
-      "asset": "XRP",
-      "reason": "Fully invested in SOL",
-      "signal": "+1.47% 1h | +4.88% 24h",
-      "price": 1.39,
-      "est_gain_pct": 12.0,
-      "est_gain_usd": 1.33
-    },
-    {
-      "time": "2026-04-07 23:54 UTC",
-      "asset": "BTC",
-      "reason": "Fully invested in SOL",
-      "signal": "+1.37% 1h | +4.84% 24h",
-      "price": 72173,
-      "est_gain_pct": 12.0,
-      "est_gain_usd": 1.33
-    },
     {
       "time": "2026-04-07 23:54 UTC",
       "asset": "ETH",
@@ -5412,6 +5376,42 @@
       "price": 1.38,
       "est_gain_pct": 12.0,
       "est_gain_usd": 0.38
+    },
+    {
+      "time": "2026-04-08 00:06 UTC",
+      "asset": "BTC",
+      "reason": "Fully invested in SOL",
+      "signal": "+0.76% 1h | +4.27% 24h",
+      "price": 71902,
+      "est_gain_pct": 12.0,
+      "est_gain_usd": 1.32
+    },
+    {
+      "time": "2026-04-08 00:06 UTC",
+      "asset": "ETH",
+      "reason": "Fully invested in SOL",
+      "signal": "+0.73% 1h | +6.00% 24h",
+      "price": 2241.65,
+      "est_gain_pct": 12.0,
+      "est_gain_usd": 1.32
+    },
+    {
+      "time": "2026-04-08 00:06 UTC",
+      "asset": "XRP",
+      "reason": "Fully invested in SOL",
+      "signal": "+0.34% 1h | +4.27% 24h",
+      "price": 1.38,
+      "est_gain_pct": 12.0,
+      "est_gain_usd": 1.32
+    },
+    {
+      "time": "2026-04-08 00:06 UTC",
+      "asset": "XRP",
+      "reason": "Below threshold (+0.34% < 0.6%)",
+      "signal": "+0.34% 1h | score=1.36 | RSI=82.6",
+      "price": 1.38,
+      "est_gain_pct": 12.0,
+      "est_gain_usd": 0.38
     }
   ],
   "last_sell_price": 2067.03,
@@ -5422,6 +5422,20 @@
   "strategy_written_this_run": false,
   "strat_stab": {
     "keys": [
+      [
+        12.0,
+        3.5,
+        "ETH-USD",
+        0.3,
+        60.0
+      ],
+      [
+        7.0,
+        3.5,
+        "ETH-USD",
+        0.1,
+        60.0
+      ],
       [
         7.0,
         3.5,
@@ -5477,24 +5491,10 @@
         "ETH-USD",
         0.3,
         60.0
-      ],
-      [
-        12.0,
-        3.5,
-        "ETH-USD",
-        0.3,
-        60.0
-      ],
-      [
-        12.0,
-        3.5,
-        "ETH-USD",
-        0.3,
-        60.0
       ]
     ],
-    "flip_count": 757,
-    "locked_until": 1776211583.201194,
+    "flip_count": 755,
+    "locked_until": 1776211519.7055597,
     "lock_tp": 12.0,
     "lock_sl": 3.5
   }
