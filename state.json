@@ -1,5 +1,17 @@
 {
-  "positions": {},
+  "positions": {
+    "ETH": {
+      "qty": 0.00408355,
+      "entry": 2250.49,
+      "stop_loss": 2171.7228499999997,
+      "target": 2520.5488,
+      "size_usd": 9.31,
+      "peak_price": 2250.49,
+      "order_id": "f650f758-98a8-44c7-9737-9cb04eca4ca4",
+      "entry_time": 1775623390.285604,
+      "current_price": 2250.74
+    }
+  },
   "trades": [
     {
       "time": "2026-03-30T11:10:07",
@@ -493,13 +505,26 @@
         "24h: -2.20%",
         "BTC $68,471"
       ]
+    },
+    {
+      "time": "2026-04-08 04:43 UTC",
+      "asset": "ETH",
+      "side": "BUY",
+      "qty": 0.00408355,
+      "entry": 2250.49,
+      "exit": null,
+      "sizeUsd": 9.31,
+      "pnl": null,
+      "reason": "\ud83c\udfaf SNIPER v2: ETH score=2.124 | 1h=+0.60% 24h=+6.55% | RSI=90.3 vol=0.24x | RSI 90.3 overbought \u2193 | vol 0.2x avg",
+      "strategy_context": "SNIPER: ETH @ $2250.4900 | 1h: +0.60% | Stop: $2171.7228 (-3.5%) | Target: $2520.5488 (+12.0%) | Deployed: $9.31 (25% of portfolio)",
+      "signals": [
+        "1h: +0.60%",
+        "24h: +6.55%",
+        "BTC $71,642"
+      ]
     }
   ],
   "balance_history": [
-    {
-      "time": "2026-04-07 19:32 UTC",
-      "value": 34.8437
-    },
     {
       "time": "2026-04-07 19:33 UTC",
       "value": 34.8176
@@ -3375,6 +3400,10 @@
     {
       "time": "2026-04-08 04:42 UTC",
       "value": 36.5767
+    },
+    {
+      "time": "2026-04-08 04:43 UTC",
+      "value": 36.5788
     }
   ],
   "start_balance": 40.0,
@@ -3382,26 +3411,13 @@
   "cash": 12.96,
   "scalp": {
     "trades_today": 0,
-    "last_price": 1.37711963323974,
+    "last_price": 1.38,
     "position": null,
     "last_entry_time": 1775219437.2553296,
     "disabled_until_recovery": true
   },
   "last_day": 10,
   "activity_log": [
-    {
-      "time": "2026-04-08 02:56 UTC",
-      "cycle": 720,
-      "portfolio": 36.45,
-      "eth_price": 2235.31,
-      "eth_pnl_pct": 0,
-      "cash": 12.96,
-      "actions": [
-        "holding cash"
-      ],
-      "xrp": "Positions: none",
-      "regime": "fear"
-    },
     {
       "time": "2026-04-08 02:57 UTC",
       "cycle": 720,
@@ -4948,36 +4964,22 @@
       ],
       "xrp": "Positions: none",
       "regime": "fear"
+    },
+    {
+      "time": "2026-04-08 04:43 UTC",
+      "cycle": 720,
+      "portfolio": 36.58,
+      "eth_price": 2250.74,
+      "eth_pnl_pct": 0.01,
+      "cash": 12.96,
+      "actions": [
+        "\ud83c\udfaf Sniper buy: 0.004084 ETH @ $2250.4900"
+      ],
+      "xrp": "Positions: ETH +0.0%",
+      "regime": "fear"
     }
   ],
   "missed_opportunities": [
-    {
-      "time": "2026-04-08 04:35 UTC",
-      "asset": "XRP",
-      "reason": "Below threshold (+0.23% < 0.6%)",
-      "signal": "+0.23% 1h | score=1.17 | RSI=81.7",
-      "price": 1.38,
-      "est_gain_pct": 12.0,
-      "est_gain_usd": 1.4
-    },
-    {
-      "time": "2026-04-08 04:35 UTC",
-      "asset": "BTC",
-      "reason": "Below threshold (+0.23% < 0.6%)",
-      "signal": "+0.23% 1h | score=1.11 | RSI=83.8",
-      "price": 71532,
-      "est_gain_pct": 12.0,
-      "est_gain_usd": 1.4
-    },
-    {
-      "time": "2026-04-08 04:36 UTC",
-      "asset": "ETH",
-      "reason": "Below threshold (+0.38% < 0.6%)",
-      "signal": "+0.38% 1h | score=1.89 | RSI=90.1",
-      "price": 2244.23,
-      "est_gain_pct": 12.0,
-      "est_gain_usd": 1.4
-    },
     {
       "time": "2026-04-08 04:36 UTC",
       "asset": "SOL",
@@ -5398,6 +5400,33 @@
       "reason": "Below threshold (+0.47% < 0.6%)",
       "signal": "+0.47% 1h | score=0.01 | RSI=86.7",
       "price": 84.9384852861445,
+      "est_gain_pct": 12.0,
+      "est_gain_usd": 1.4
+    },
+    {
+      "time": "2026-04-08 04:43 UTC",
+      "asset": "SOL",
+      "reason": "Below threshold (+0.37% < 0.6%)",
+      "signal": "+0.37% 1h | score=1.86 | RSI=86.7",
+      "price": 84.92,
+      "est_gain_pct": 12.0,
+      "est_gain_usd": 1.4
+    },
+    {
+      "time": "2026-04-08 04:43 UTC",
+      "asset": "XRP",
+      "reason": "Below threshold (+0.37% < 0.6%)",
+      "signal": "+0.37% 1h | score=1.30 | RSI=82.0",
+      "price": 1.38,
+      "est_gain_pct": 12.0,
+      "est_gain_usd": 1.4
+    },
+    {
+      "time": "2026-04-08 04:43 UTC",
+      "asset": "BTC",
+      "reason": "Below threshold (+0.36% < 0.6%)",
+      "signal": "+0.36% 1h | score=1.25 | RSI=84.0",
+      "price": 71642,
       "est_gain_pct": 12.0,
       "est_gain_usd": 1.4
     }
