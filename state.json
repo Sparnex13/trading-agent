@@ -498,10 +498,6 @@
   "balance_history": [
     {
       "time": "2026-04-07 17:36 UTC",
-      "value": 34.7354
-    },
-    {
-      "time": "2026-04-07 17:36 UTC",
       "value": 34.7627
     },
     {
@@ -3374,7 +3370,11 @@
     },
     {
       "time": "2026-04-08 01:37 UTC",
-      "value": 36.3946
+      "value": 36.3982
+    },
+    {
+      "time": "2026-04-08 01:38 UTC",
+      "value": 36.4238
     }
   ],
   "start_balance": 40.0,
@@ -3389,19 +3389,6 @@
   },
   "last_day": 10,
   "activity_log": [
-    {
-      "time": "2026-04-07 23:51 UTC",
-      "cycle": 720,
-      "portfolio": 36.92,
-      "eth_price": 2254.33,
-      "eth_pnl_pct": 7.58,
-      "cash": 3.48,
-      "actions": [
-        "holding SOL +7.6%"
-      ],
-      "xrp": "Positions: SOL +7.6%",
-      "regime": "extreme_fear"
-    },
     {
       "time": "2026-04-07 23:52 UTC",
       "cycle": 720,
@@ -4939,8 +4926,21 @@
     {
       "time": "2026-04-08 01:37 UTC",
       "cycle": 720,
-      "portfolio": 36.39,
-      "eth_price": 2233.44,
+      "portfolio": 36.4,
+      "eth_price": 2234.33,
+      "eth_pnl_pct": 0,
+      "cash": 12.96,
+      "actions": [
+        "holding cash"
+      ],
+      "xrp": "Positions: none",
+      "regime": "fear"
+    },
+    {
+      "time": "2026-04-08 01:38 UTC",
+      "cycle": 720,
+      "portfolio": 36.42,
+      "eth_price": 2234.67,
       "eth_pnl_pct": 0,
       "cash": 12.96,
       "actions": [
@@ -5418,13 +5418,6 @@
         60.0
       ],
       [
-        12.0,
-        3.5,
-        "ETH-USD",
-        0.3,
-        60.0
-      ],
-      [
         10.0,
         5.0,
         "ETH-USD",
@@ -5455,6 +5448,13 @@
       [
         10.0,
         5.0,
+        "ETH-USD",
+        0.3,
+        60.0
+      ],
+      [
+        12.0,
+        3.5,
         "ETH-USD",
         0.3,
         60.0
@@ -5481,8 +5481,8 @@
         60.0
       ]
     ],
-    "flip_count": 773,
-    "locked_until": 1776216975.3380709,
+    "flip_count": 774,
+    "locked_until": 1776217038.6149719,
     "lock_tp": 12.0,
     "lock_sl": 3.5
   }
