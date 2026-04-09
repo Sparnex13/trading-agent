@@ -3382,7 +3382,7 @@
   "cash": 3.66,
   "scalp": {
     "trades_today": 0,
-    "last_price": 1.35,
+    "last_price": 1.35197866859459,
     "position": null,
     "last_entry_time": 1775219437.2553296,
     "disabled_until_recovery": true
@@ -4940,7 +4940,7 @@
       "time": "2026-04-09 21:33 UTC",
       "cycle": 720,
       "portfolio": 35.89,
-      "eth_price": 2208.9,
+      "eth_price": 2208.53,
       "eth_pnl_pct": 0,
       "cash": 3.66,
       "actions": [
@@ -4951,15 +4951,6 @@
     }
   ],
   "missed_opportunities": [
-    {
-      "time": "2026-04-09 20:54 UTC",
-      "asset": "SOL",
-      "reason": "Below threshold (+0.27% < 0.6%)",
-      "signal": "+0.27% 1h | score=0.51 | RSI=69.7",
-      "price": 84.27,
-      "est_gain_pct": 12.0,
-      "est_gain_usd": 0.4
-    },
     {
       "time": "2026-04-09 20:54 UTC",
       "asset": "XRP",
@@ -5400,6 +5391,15 @@
       "price": 72296,
       "est_gain_pct": 12.0,
       "est_gain_usd": 0.4
+    },
+    {
+      "time": "2026-04-09 21:33 UTC",
+      "asset": "SOL",
+      "reason": "Below threshold (+0.01% < 1.0%)",
+      "signal": "+0.01% 1h | score=0.64 | RSI=68.2",
+      "price": 84.2844697303841,
+      "est_gain_pct": 12.0,
+      "est_gain_usd": 0.4
     }
   ],
   "last_sell_price": 2067.03,
@@ -5410,13 +5410,6 @@
   "strategy_written_this_run": false,
   "strat_stab": {
     "keys": [
-      [
-        12.0,
-        3.5,
-        "ETH-USD",
-        0.3,
-        60.0
-      ],
       [
         12.0,
         3.5,
@@ -5479,10 +5472,17 @@
         "SOL-USD",
         0.3,
         60.0
+      ],
+      [
+        12.0,
+        3.5,
+        "SOL-USD",
+        0.3,
+        60.0
       ]
     ],
-    "flip_count": 1235,
-    "locked_until": 1776374357.1623218,
+    "flip_count": 1236,
+    "locked_until": 1776375185.5302083,
     "lock_tp": 12.0,
     "lock_sl": 3.5
   }
