@@ -497,10 +497,6 @@
   ],
   "balance_history": [
     {
-      "time": "2026-04-09 04:30 UTC",
-      "value": 35.4248
-    },
-    {
       "time": "2026-04-09 04:31 UTC",
       "value": 35.4442
     },
@@ -3375,6 +3371,10 @@
     {
       "time": "2026-04-09 13:08 UTC",
       "value": 35.4559
+    },
+    {
+      "time": "2026-04-09 13:09 UTC",
+      "value": 35.4496
     }
   ],
   "start_balance": 40.0,
@@ -3389,19 +3389,6 @@
   },
   "last_day": 12,
   "activity_log": [
-    {
-      "time": "2026-04-09 12:02 UTC",
-      "cycle": 720,
-      "portfolio": 35.46,
-      "eth_price": 2180.21,
-      "eth_pnl_pct": 0,
-      "cash": 3.66,
-      "actions": [
-        "holding cash"
-      ],
-      "xrp": "Positions: none",
-      "regime": "extreme_fear"
-    },
     {
       "time": "2026-04-09 12:03 UTC",
       "cycle": 720,
@@ -4948,18 +4935,22 @@
       ],
       "xrp": "Positions: none",
       "regime": "extreme_fear"
+    },
+    {
+      "time": "2026-04-09 13:09 UTC",
+      "cycle": 720,
+      "portfolio": 35.45,
+      "eth_price": 2178.73,
+      "eth_pnl_pct": 0,
+      "cash": 3.66,
+      "actions": [
+        "holding cash"
+      ],
+      "xrp": "Positions: none",
+      "regime": "extreme_fear"
     }
   ],
   "missed_opportunities": [
-    {
-      "time": "2026-04-09 12:58 UTC",
-      "asset": "SOL",
-      "reason": "Below threshold (+0.07% < 1.0%)",
-      "signal": "+0.07% 1h | score=0.27 | RSI=42.3",
-      "price": 82.24,
-      "est_gain_pct": 12.0,
-      "est_gain_usd": 0.4
-    },
     {
       "time": "2026-04-09 12:59 UTC",
       "asset": "XRP",
@@ -5394,6 +5385,15 @@
     },
     {
       "time": "2026-04-09 13:08 UTC",
+      "asset": "XRP",
+      "reason": "Below threshold (+0.13% < 1.0%)",
+      "signal": "+0.13% 1h | score=0.51 | RSI=32.5",
+      "price": 1.33,
+      "est_gain_pct": 12.0,
+      "est_gain_usd": 0.4
+    },
+    {
+      "time": "2026-04-09 13:09 UTC",
       "asset": "XRP",
       "reason": "Below threshold (+0.13% < 1.0%)",
       "signal": "+0.13% 1h | score=0.51 | RSI=32.5",
