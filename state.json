@@ -497,10 +497,6 @@
   ],
   "balance_history": [
     {
-      "time": "2026-04-09 05:11 UTC",
-      "value": 35.4356
-    },
-    {
       "time": "2026-04-09 05:12 UTC",
       "value": 35.4421
     },
@@ -3375,6 +3371,10 @@
     {
       "time": "2026-04-09 13:38 UTC",
       "value": 35.3717
+    },
+    {
+      "time": "2026-04-09 13:39 UTC",
+      "value": 35.3368
     }
   ],
   "start_balance": 40.0,
@@ -3389,19 +3389,6 @@
   },
   "last_day": 12,
   "activity_log": [
-    {
-      "time": "2026-04-09 12:24 UTC",
-      "cycle": 720,
-      "portfolio": 35.39,
-      "eth_price": 2175.59,
-      "eth_pnl_pct": 0,
-      "cash": 3.66,
-      "actions": [
-        "holding cash"
-      ],
-      "xrp": "Positions: none",
-      "regime": "extreme_fear"
-    },
     {
       "time": "2026-04-09 12:24 UTC",
       "cycle": 720,
@@ -4948,18 +4935,22 @@
       ],
       "xrp": "Positions: none",
       "regime": "extreme_fear"
+    },
+    {
+      "time": "2026-04-09 13:39 UTC",
+      "cycle": 720,
+      "portfolio": 35.34,
+      "eth_price": 2172.25,
+      "eth_pnl_pct": 0,
+      "cash": 3.66,
+      "actions": [
+        "holding cash"
+      ],
+      "xrp": "Positions: none",
+      "regime": "extreme_fear"
     }
   ],
   "missed_opportunities": [
-    {
-      "time": "2026-04-09 13:22 UTC",
-      "asset": "BTC",
-      "reason": "Below threshold (+0.07% < 1.0%)",
-      "signal": "+0.07% 1h | score=0.24 | RSI=50.5",
-      "price": 71117,
-      "est_gain_pct": 12.0,
-      "est_gain_usd": 0.4
-    },
     {
       "time": "2026-04-09 13:22 UTC",
       "asset": "SOL",
@@ -5396,7 +5387,16 @@
       "time": "2026-04-09 13:38 UTC",
       "asset": "XRP",
       "reason": "Below threshold (+0.17% < 1.0%)",
-      "signal": "+0.17% 1h | score=0.53 | RSI=32.0",
+      "signal": "+0.17% 1h | score=0.53 | RSI=32.1",
+      "price": 1.33,
+      "est_gain_pct": 12.0,
+      "est_gain_usd": 0.4
+    },
+    {
+      "time": "2026-04-09 13:39 UTC",
+      "asset": "XRP",
+      "reason": "Below threshold (+0.16% < 1.0%)",
+      "signal": "+0.16% 1h | score=0.52 | RSI=31.0",
       "price": 1.33,
       "est_gain_pct": 12.0,
       "est_gain_usd": 0.4
@@ -5481,8 +5481,8 @@
         60.0
       ]
     ],
-    "flip_count": 1140,
-    "locked_until": 1776346625.2752278,
+    "flip_count": 1141,
+    "locked_until": 1776346689.281302,
     "lock_tp": 12.0,
     "lock_sl": 3.5
   }
