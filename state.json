@@ -497,10 +497,6 @@
   ],
   "balance_history": [
     {
-      "time": "2026-04-09 12:36 UTC",
-      "value": 35.4799
-    },
-    {
       "time": "2026-04-09 12:37 UTC",
       "value": 35.4631
     },
@@ -3375,6 +3371,10 @@
     {
       "time": "2026-04-09 21:18 UTC",
       "value": 35.9699
+    },
+    {
+      "time": "2026-04-09 21:19 UTC",
+      "value": 35.9692
     }
   ],
   "start_balance": 40.0,
@@ -3389,19 +3389,6 @@
   },
   "last_day": 12,
   "activity_log": [
-    {
-      "time": "2026-04-09 19:31 UTC",
-      "cycle": 720,
-      "portfolio": 35.98,
-      "eth_price": 2213.22,
-      "eth_pnl_pct": 0,
-      "cash": 3.66,
-      "actions": [
-        "holding cash"
-      ],
-      "xrp": "Positions: none",
-      "regime": "extreme_fear"
-    },
     {
       "time": "2026-04-09 19:32 UTC",
       "cycle": 720,
@@ -4948,18 +4935,22 @@
       ],
       "xrp": "Positions: none",
       "regime": "extreme_fear"
+    },
+    {
+      "time": "2026-04-09 21:19 UTC",
+      "cycle": 720,
+      "portfolio": 35.97,
+      "eth_price": 2212.62,
+      "eth_pnl_pct": 0,
+      "cash": 3.66,
+      "actions": [
+        "holding cash"
+      ],
+      "xrp": "Positions: none",
+      "regime": "extreme_fear"
     }
   ],
   "missed_opportunities": [
-    {
-      "time": "2026-04-09 20:52 UTC",
-      "asset": "SOL",
-      "reason": "Below threshold (+0.10% < 1.0%)",
-      "signal": "+0.10% 1h | score=0.41 | RSI=67.8",
-      "price": 84.13,
-      "est_gain_pct": 12.0,
-      "est_gain_usd": 0.4
-    },
     {
       "time": "2026-04-09 20:54 UTC",
       "asset": "BTC",
@@ -5398,6 +5389,15 @@
       "reason": "Below threshold (+0.08% < 1.0%)",
       "signal": "+0.08% 1h | score=0.47 | RSI=64.7",
       "price": 72318,
+      "est_gain_pct": 12.0,
+      "est_gain_usd": 0.4
+    },
+    {
+      "time": "2026-04-09 21:19 UTC",
+      "asset": "BTC",
+      "reason": "Below threshold (+0.04% < 1.0%)",
+      "signal": "+0.04% 1h | score=0.44 | RSI=65.0",
+      "price": 72291,
       "est_gain_pct": 12.0,
       "est_gain_usd": 0.4
     }
