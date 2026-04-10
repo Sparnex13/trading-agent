@@ -498,10 +498,6 @@
   "balance_history": [
     {
       "time": "2026-04-10 04:55 UTC",
-      "value": 35.7397
-    },
-    {
-      "time": "2026-04-10 04:55 UTC",
       "value": 35.7507
     },
     {
@@ -3375,6 +3371,10 @@
     {
       "time": "2026-04-10 12:59 UTC",
       "value": 35.929
+    },
+    {
+      "time": "2026-04-10 13:00 UTC",
+      "value": 35.9104
     }
   ],
   "start_balance": 40.0,
@@ -3389,19 +3389,6 @@
   },
   "last_day": 13,
   "activity_log": [
-    {
-      "time": "2026-04-10 11:37 UTC",
-      "cycle": 720,
-      "portfolio": 35.94,
-      "eth_price": 2217.67,
-      "eth_pnl_pct": 0,
-      "cash": 3.66,
-      "actions": [
-        "holding cash"
-      ],
-      "xrp": "Positions: none",
-      "regime": "fear"
-    },
     {
       "time": "2026-04-10 11:39 UTC",
       "cycle": 720,
@@ -4948,36 +4935,22 @@
       ],
       "xrp": "Positions: none",
       "regime": "fear"
+    },
+    {
+      "time": "2026-04-10 13:00 UTC",
+      "cycle": 720,
+      "portfolio": 35.91,
+      "eth_price": 2219.21,
+      "eth_pnl_pct": 0,
+      "cash": 3.66,
+      "actions": [
+        "holding cash"
+      ],
+      "xrp": "Positions: none",
+      "regime": "fear"
     }
   ],
   "missed_opportunities": [
-    {
-      "time": "2026-04-10 12:47 UTC",
-      "asset": "SOL",
-      "reason": "Below threshold (+0.66% < 1.0%)",
-      "signal": "+0.66% 1h | score=1.64 | RSI=53.4",
-      "price": 84.25,
-      "est_gain_pct": 12.0,
-      "est_gain_usd": 0.4
-    },
-    {
-      "time": "2026-04-10 12:47 UTC",
-      "asset": "XRP",
-      "reason": "Below threshold (+0.21% < 1.0%)",
-      "signal": "+0.21% 1h | score=0.93 | RSI=40.9",
-      "price": 1.34,
-      "est_gain_pct": 12.0,
-      "est_gain_usd": 0.4
-    },
-    {
-      "time": "2026-04-10 12:47 UTC",
-      "asset": "BTC",
-      "reason": "Below threshold (+0.10% < 1.0%)",
-      "signal": "+0.10% 1h | score=0.89 | RSI=57.8",
-      "price": 72308,
-      "est_gain_pct": 12.0,
-      "est_gain_usd": 0.4
-    },
     {
       "time": "2026-04-10 12:47 UTC",
       "asset": "ETH",
@@ -5397,6 +5370,33 @@
       "asset": "XRP",
       "reason": "Below threshold (+0.21% < 1.0%)",
       "signal": "+0.21% 1h | score=0.78 | RSI=37.7",
+      "price": 1.34,
+      "est_gain_pct": 12.0,
+      "est_gain_usd": 0.4
+    },
+    {
+      "time": "2026-04-10 13:00 UTC",
+      "asset": "SOL",
+      "reason": "Below threshold (+0.66% < 1.0%)",
+      "signal": "+0.66% 1h | score=1.12 | RSI=61.8",
+      "price": 84.13,
+      "est_gain_pct": 12.0,
+      "est_gain_usd": 0.4
+    },
+    {
+      "time": "2026-04-10 13:00 UTC",
+      "asset": "BTC",
+      "reason": "Below threshold (+0.12% < 1.0%)",
+      "signal": "+0.12% 1h | score=0.72 | RSI=58.8",
+      "price": 72261,
+      "est_gain_pct": 12.0,
+      "est_gain_usd": 0.4
+    },
+    {
+      "time": "2026-04-10 13:00 UTC",
+      "asset": "XRP",
+      "reason": "Below threshold (+0.15% < 1.0%)",
+      "signal": "+0.15% 1h | score=0.47 | RSI=47.8",
       "price": 1.34,
       "est_gain_pct": 12.0,
       "est_gain_usd": 0.4
