@@ -498,10 +498,6 @@
   "balance_history": [
     {
       "time": "2026-04-09 14:48 UTC",
-      "value": 35.4131
-    },
-    {
-      "time": "2026-04-09 14:48 UTC",
       "value": 35.417
     },
     {
@@ -3374,7 +3370,11 @@
     },
     {
       "time": "2026-04-09 23:59 UTC",
-      "value": 35.6523
+      "value": 35.6579
+    },
+    {
+      "time": "2026-04-10 00:00 UTC",
+      "value": 35.6645
     }
   ],
   "start_balance": 40.0,
@@ -3389,19 +3389,6 @@
   },
   "last_day": 12,
   "activity_log": [
-    {
-      "time": "2026-04-09 22:29 UTC",
-      "cycle": 720,
-      "portfolio": 36.14,
-      "eth_price": 2226.25,
-      "eth_pnl_pct": 0,
-      "cash": 3.66,
-      "actions": [
-        "holding cash"
-      ],
-      "xrp": "Positions: none",
-      "regime": "extreme_fear"
-    },
     {
       "time": "2026-04-09 22:30 UTC",
       "cycle": 720,
@@ -4939,8 +4926,21 @@
     {
       "time": "2026-04-09 23:59 UTC",
       "cycle": 720,
-      "portfolio": 35.65,
+      "portfolio": 35.66,
       "eth_price": 2189.22,
+      "eth_pnl_pct": 0,
+      "cash": 3.66,
+      "actions": [
+        "holding cash"
+      ],
+      "xrp": "Positions: none",
+      "regime": "extreme_fear"
+    },
+    {
+      "time": "2026-04-10 00:00 UTC",
+      "cycle": 720,
+      "portfolio": 35.66,
+      "eth_price": 2189.08,
       "eth_pnl_pct": 0,
       "cash": 3.66,
       "actions": [
@@ -5460,29 +5460,29 @@
         60.0
       ],
       [
+        10.0,
+        5.0,
+        "ETH-USD",
+        0.1,
+        60.0
+      ],
+      [
+        10.0,
+        5.0,
+        "ETH-USD",
+        0.1,
+        60.0
+      ],
+      [
         12.0,
         3.5,
-        "SOL-USD",
+        "ETH-USD",
         0.3,
-        60.0
-      ],
-      [
-        10.0,
-        5.0,
-        "ETH-USD",
-        0.1,
-        60.0
-      ],
-      [
-        10.0,
-        5.0,
-        "ETH-USD",
-        0.1,
         60.0
       ]
     ],
-    "flip_count": 1274,
-    "locked_until": 1776383656.3683782,
+    "flip_count": 1275,
+    "locked_until": 1776383971.623752,
     "lock_tp": 12.0,
     "lock_sl": 3.5
   }
