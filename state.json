@@ -497,10 +497,6 @@
   ],
   "balance_history": [
     {
-      "time": "2026-04-13 06:32 UTC",
-      "value": 35.6657
-    },
-    {
       "time": "2026-04-13 06:33 UTC",
       "value": 35.6684
     },
@@ -3375,6 +3371,10 @@
     {
       "time": "2026-04-13 15:38 UTC",
       "value": 35.7225
+    },
+    {
+      "time": "2026-04-13 15:39 UTC",
+      "value": 35.7453
     }
   ],
   "start_balance": 40.0,
@@ -3389,19 +3389,6 @@
   },
   "last_day": 16,
   "activity_log": [
-    {
-      "time": "2026-04-13 14:02 UTC",
-      "cycle": 720,
-      "portfolio": 35.84,
-      "eth_price": 2213.22,
-      "eth_pnl_pct": 0,
-      "cash": 3.66,
-      "actions": [
-        "holding cash"
-      ],
-      "xrp": "Positions: none",
-      "regime": "extreme_fear"
-    },
     {
       "time": "2026-04-13 14:03 UTC",
       "cycle": 720,
@@ -4948,6 +4935,19 @@
       ],
       "xrp": "Positions: none",
       "regime": "extreme_fear"
+    },
+    {
+      "time": "2026-04-13 15:39 UTC",
+      "cycle": 720,
+      "portfolio": 35.75,
+      "eth_price": 2203.39,
+      "eth_pnl_pct": 0,
+      "cash": 3.66,
+      "actions": [
+        "holding cash"
+      ],
+      "xrp": "Positions: none",
+      "regime": "extreme_fear"
     }
   ],
   "missed_opportunities": [
@@ -5411,13 +5411,6 @@
   "strat_stab": {
     "keys": [
       [
-        12.0,
-        3.5,
-        "ETH-USD",
-        0.3,
-        60.0
-      ],
-      [
         10.0,
         5.0,
         "ETH-USD",
@@ -5479,10 +5472,17 @@
         "ETH-USD",
         0.3,
         60.0
+      ],
+      [
+        12.0,
+        3.5,
+        "ETH-USD",
+        0.3,
+        60.0
       ]
     ],
-    "flip_count": 2249,
-    "locked_until": 1776699459.8812678,
+    "flip_count": 2250,
+    "locked_until": 1776699523.5751977,
     "lock_tp": 12.0,
     "lock_sl": 3.5
   }
