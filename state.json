@@ -497,10 +497,6 @@
   ],
   "balance_history": [
     {
-      "time": "2026-04-12 21:54 UTC",
-      "value": 35.7808
-    },
-    {
       "time": "2026-04-12 21:55 UTC",
       "value": 35.7772
     },
@@ -3374,7 +3370,11 @@
     },
     {
       "time": "2026-04-13 06:07 UTC",
-      "value": 35.6467
+      "value": 35.6451
+    },
+    {
+      "time": "2026-04-13 06:08 UTC",
+      "value": 35.6333
     }
   ],
   "start_balance": 40.0,
@@ -3389,19 +3389,6 @@
   },
   "last_day": 16,
   "activity_log": [
-    {
-      "time": "2026-04-13 04:38 UTC",
-      "cycle": 720,
-      "portfolio": 35.6,
-      "eth_price": 2196.79,
-      "eth_pnl_pct": 0,
-      "cash": 3.66,
-      "actions": [
-        "holding cash"
-      ],
-      "xrp": "Positions: none",
-      "regime": "extreme_fear"
-    },
     {
       "time": "2026-04-13 04:39 UTC",
       "cycle": 720,
@@ -4948,45 +4935,22 @@
       ],
       "xrp": "Positions: none",
       "regime": "extreme_fear"
+    },
+    {
+      "time": "2026-04-13 06:08 UTC",
+      "cycle": 720,
+      "portfolio": 35.63,
+      "eth_price": 2195.57,
+      "eth_pnl_pct": 0,
+      "cash": 3.66,
+      "actions": [
+        "holding cash"
+      ],
+      "xrp": "Positions: none",
+      "regime": "extreme_fear"
     }
   ],
   "missed_opportunities": [
-    {
-      "time": "2026-04-13 05:26 UTC",
-      "asset": "XRP",
-      "reason": "Below threshold (+0.10% < 1.0%)",
-      "signal": "+0.10% 1h | score=0.17 | RSI=50.2",
-      "price": 1.32456907645262,
-      "est_gain_pct": 12.0,
-      "est_gain_usd": 0.4
-    },
-    {
-      "time": "2026-04-13 05:38 UTC",
-      "asset": "XRP",
-      "reason": "Below threshold (+0.08% < 1.0%)",
-      "signal": "+0.08% 1h | score=0.15 | RSI=49.7",
-      "price": 1.32419420766015,
-      "est_gain_pct": 12.0,
-      "est_gain_usd": 0.4
-    },
-    {
-      "time": "2026-04-13 05:43 UTC",
-      "asset": "XRP",
-      "reason": "Below threshold (+0.21% < 1.0%)",
-      "signal": "+0.21% 1h | score=0.26 | RSI=51.7",
-      "price": 1.32598229256002,
-      "est_gain_pct": 12.0,
-      "est_gain_usd": 0.4
-    },
-    {
-      "time": "2026-04-13 05:46 UTC",
-      "asset": "XRP",
-      "reason": "Below threshold (+0.08% < 1.0%)",
-      "signal": "+0.08% 1h | score=0.16 | RSI=53.9",
-      "price": 1.33,
-      "est_gain_pct": 12.0,
-      "est_gain_usd": 0.4
-    },
     {
       "time": "2026-04-13 05:46 UTC",
       "asset": "XRP",
@@ -5400,6 +5364,42 @@
       "price": 82.06,
       "est_gain_pct": 12.0,
       "est_gain_usd": 0.4
+    },
+    {
+      "time": "2026-04-13 06:08 UTC",
+      "asset": "XRP",
+      "reason": "Below threshold (+0.81% < 1.0%)",
+      "signal": "+0.81% 1h | score=0.81 | RSI=54.2",
+      "price": 1.33,
+      "est_gain_pct": 12.0,
+      "est_gain_usd": 0.4
+    },
+    {
+      "time": "2026-04-13 06:08 UTC",
+      "asset": "ETH",
+      "reason": "Below threshold (+0.28% < 1.0%)",
+      "signal": "+0.28% 1h | score=0.52 | RSI=53.5",
+      "price": 2195.57,
+      "est_gain_pct": 12.0,
+      "est_gain_usd": 0.4
+    },
+    {
+      "time": "2026-04-13 06:08 UTC",
+      "asset": "BTC",
+      "reason": "Below threshold (+0.17% < 1.0%)",
+      "signal": "+0.17% 1h | score=0.30 | RSI=51.0",
+      "price": 70993,
+      "est_gain_pct": 12.0,
+      "est_gain_usd": 0.4
+    },
+    {
+      "time": "2026-04-13 06:08 UTC",
+      "asset": "SOL",
+      "reason": "Below threshold (+0.26% < 1.0%)",
+      "signal": "+0.26% 1h | score=0.28 | RSI=52.0",
+      "price": 82.13,
+      "est_gain_pct": 12.0,
+      "est_gain_usd": 0.4
     }
   ],
   "last_sell_price": 2067.03,
@@ -5411,10 +5411,10 @@
   "strat_stab": {
     "keys": [
       [
-        10.0,
-        5.0,
+        12.0,
+        3.5,
         "ETH-USD",
-        0.1,
+        0.3,
         60.0
       ],
       [
@@ -5481,8 +5481,8 @@
         60.0
       ]
     ],
-    "flip_count": 2112,
-    "locked_until": 1776665208.081397,
+    "flip_count": 2113,
+    "locked_until": 1776665272.4758344,
     "lock_tp": 12.0,
     "lock_sl": 3.5
   }
