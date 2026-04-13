@@ -498,10 +498,6 @@
   "balance_history": [
     {
       "time": "2026-04-13 05:43 UTC",
-      "value": 35.4917
-    },
-    {
-      "time": "2026-04-13 05:43 UTC",
       "value": 35.4931
     },
     {
@@ -3374,7 +3370,11 @@
     },
     {
       "time": "2026-04-13 14:45 UTC",
-      "value": 36.0305
+      "value": 36.0324
+    },
+    {
+      "time": "2026-04-13 14:46 UTC",
+      "value": 35.9854
     }
   ],
   "start_balance": 40.0,
@@ -3389,19 +3389,6 @@
   },
   "last_day": 16,
   "activity_log": [
-    {
-      "time": "2026-04-13 13:16 UTC",
-      "cycle": 720,
-      "portfolio": 35.65,
-      "eth_price": 2198.75,
-      "eth_pnl_pct": 0,
-      "cash": 3.66,
-      "actions": [
-        "holding cash"
-      ],
-      "xrp": "Positions: none",
-      "regime": "extreme_fear"
-    },
     {
       "time": "2026-04-13 13:17 UTC",
       "cycle": 720,
@@ -4948,18 +4935,22 @@
       ],
       "xrp": "Positions: none",
       "regime": "extreme_fear"
+    },
+    {
+      "time": "2026-04-13 14:46 UTC",
+      "cycle": 720,
+      "portfolio": 35.99,
+      "eth_price": 2225.34,
+      "eth_pnl_pct": 0,
+      "cash": 3.66,
+      "actions": [
+        "holding cash"
+      ],
+      "xrp": "Positions: none",
+      "regime": "extreme_fear"
     }
   ],
   "missed_opportunities": [
-    {
-      "time": "2026-04-13 14:26 UTC",
-      "asset": "XRP",
-      "reason": "Below threshold (+0.16% < 1.0%)",
-      "signal": "+0.16% 1h | score=0.42 | RSI=53.4",
-      "price": 1.34,
-      "est_gain_pct": 12.0,
-      "est_gain_usd": 0.4
-    },
     {
       "time": "2026-04-13 14:27 UTC",
       "asset": "SOL",
@@ -5397,6 +5388,15 @@
       "asset": "XRP",
       "reason": "Below threshold (+0.80% < 1.0%)",
       "signal": "+0.80% 1h | score=1.07 | RSI=58.3",
+      "price": 1.34,
+      "est_gain_pct": 12.0,
+      "est_gain_usd": 0.4
+    },
+    {
+      "time": "2026-04-13 14:46 UTC",
+      "asset": "XRP",
+      "reason": "Below threshold (+0.91% < 1.0%)",
+      "signal": "+0.91% 1h | score=1.17 | RSI=59.4",
       "price": 1.34,
       "est_gain_pct": 12.0,
       "est_gain_usd": 0.4
