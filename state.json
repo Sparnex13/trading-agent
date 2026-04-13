@@ -497,10 +497,6 @@
   ],
   "balance_history": [
     {
-      "time": "2026-04-12 23:30 UTC",
-      "value": 35.5357
-    },
-    {
       "time": "2026-04-12 23:31 UTC",
       "value": 35.4994
     },
@@ -3375,6 +3371,10 @@
     {
       "time": "2026-04-13 07:45 UTC",
       "value": 35.5285
+    },
+    {
+      "time": "2026-04-13 07:46 UTC",
+      "value": 35.5295
     }
   ],
   "start_balance": 40.0,
@@ -3389,19 +3389,6 @@
   },
   "last_day": 16,
   "activity_log": [
-    {
-      "time": "2026-04-13 06:17 UTC",
-      "cycle": 720,
-      "portfolio": 35.63,
-      "eth_price": 2195.25,
-      "eth_pnl_pct": 0,
-      "cash": 3.66,
-      "actions": [
-        "holding cash"
-      ],
-      "xrp": "Positions: none",
-      "regime": "extreme_fear"
-    },
     {
       "time": "2026-04-13 06:17 UTC",
       "cycle": 720,
@@ -4948,6 +4935,19 @@
       ],
       "xrp": "Positions: none",
       "regime": "extreme_fear"
+    },
+    {
+      "time": "2026-04-13 07:46 UTC",
+      "cycle": 720,
+      "portfolio": 35.53,
+      "eth_price": 2186.54,
+      "eth_pnl_pct": 0,
+      "cash": 3.66,
+      "actions": [
+        "holding cash"
+      ],
+      "xrp": "Positions: none",
+      "regime": "extreme_fear"
     }
   ],
   "missed_opportunities": [
@@ -5411,24 +5411,24 @@
   "strat_stab": {
     "keys": [
       [
+        10.0,
+        5.0,
+        "ETH-USD",
+        0.1,
+        60.0
+      ],
+      [
+        10.0,
+        5.0,
+        "ETH-USD",
+        0.1,
+        60.0
+      ],
+      [
         12.0,
         3.5,
         "ETH-USD",
         0.3,
-        60.0
-      ],
-      [
-        10.0,
-        5.0,
-        "ETH-USD",
-        0.1,
-        60.0
-      ],
-      [
-        10.0,
-        5.0,
-        "ETH-USD",
-        0.1,
         60.0
       ],
       [
@@ -5481,8 +5481,8 @@
         60.0
       ]
     ],
-    "flip_count": 2158,
-    "locked_until": 1776670756.564427,
+    "flip_count": 2159,
+    "locked_until": 1776671138.690725,
     "lock_tp": 12.0,
     "lock_sl": 3.5
   }
