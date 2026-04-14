@@ -498,10 +498,6 @@
   "balance_history": [
     {
       "time": "2026-04-14 11:09 UTC",
-      "value": 37.638
-    },
-    {
-      "time": "2026-04-14 11:09 UTC",
       "value": 37.6404
     },
     {
@@ -3375,6 +3371,10 @@
     {
       "time": "2026-04-14 20:54 UTC",
       "value": 36.9372
+    },
+    {
+      "time": "2026-04-14 20:55 UTC",
+      "value": 36.9343
     }
   ],
   "start_balance": 40.0,
@@ -3389,19 +3389,6 @@
   },
   "last_day": 17,
   "activity_log": [
-    {
-      "time": "2026-04-14 19:04 UTC",
-      "cycle": 720,
-      "portfolio": 36.98,
-      "eth_price": 2318.72,
-      "eth_pnl_pct": 0,
-      "cash": 3.66,
-      "actions": [
-        "holding cash"
-      ],
-      "xrp": "Positions: none",
-      "regime": "fear"
-    },
     {
       "time": "2026-04-14 19:06 UTC",
       "cycle": 720,
@@ -4948,18 +4935,22 @@
       ],
       "xrp": "Positions: none",
       "regime": "fear"
+    },
+    {
+      "time": "2026-04-14 20:55 UTC",
+      "cycle": 720,
+      "portfolio": 36.93,
+      "eth_price": 2314.81,
+      "eth_pnl_pct": 0,
+      "cash": 3.66,
+      "actions": [
+        "holding cash"
+      ],
+      "xrp": "Positions: none",
+      "regime": "fear"
     }
   ],
   "missed_opportunities": [
-    {
-      "time": "2026-04-14 20:33 UTC",
-      "asset": "XRP",
-      "reason": "Below threshold (+0.02% < 0.6%)",
-      "signal": "+0.02% 1h | score=0.31 | RSI=42.7",
-      "price": 1.36,
-      "est_gain_pct": 12.0,
-      "est_gain_usd": 0.4
-    },
     {
       "time": "2026-04-14 20:34 UTC",
       "asset": "BTC",
@@ -5400,6 +5391,15 @@
       "price": 2315.73,
       "est_gain_pct": 12.0,
       "est_gain_usd": 0.4
+    },
+    {
+      "time": "2026-04-14 20:55 UTC",
+      "asset": "ETH",
+      "reason": "Below threshold (+0.02% < 0.6%)",
+      "signal": "+0.02% 1h | score=1.17 | RSI=31.1",
+      "price": 2314.81,
+      "est_gain_pct": 12.0,
+      "est_gain_usd": 0.4
     }
   ],
   "last_sell_price": 2067.03,
@@ -5410,13 +5410,6 @@
   "strategy_written_this_run": false,
   "strat_stab": {
     "keys": [
-      [
-        10.5,
-        5.25,
-        "ETH-USD",
-        0.3,
-        60.0
-      ],
       [
         12.0,
         3.5,
@@ -5479,10 +5472,17 @@
         "ETH-USD",
         0.3,
         60.0
+      ],
+      [
+        12.0,
+        3.5,
+        "ETH-USD",
+        0.3,
+        60.0
       ]
     ],
-    "flip_count": 2522,
-    "locked_until": 1776804737.6850593,
+    "flip_count": 2523,
+    "locked_until": 1776804865.0375173,
     "lock_tp": 12.0,
     "lock_sl": 3.5
   }
