@@ -3382,7 +3382,7 @@
   "cash": 3.66,
   "scalp": {
     "trades_today": 0,
-    "last_price": 1.35351765012528,
+    "last_price": 1.35350618380724,
     "position": null,
     "last_entry_time": 1775219437.2553296,
     "disabled_until_recovery": true
@@ -4940,7 +4940,7 @@
       "time": "2026-04-15 08:09 UTC",
       "cycle": 720,
       "portfolio": 36.92,
-      "eth_price": 2317.55,
+      "eth_price": 2317.62,
       "eth_pnl_pct": 0,
       "cash": 3.66,
       "actions": [
@@ -5379,7 +5379,7 @@
       "asset": "BTC",
       "reason": "Below threshold (+0.02% < 0.6%)",
       "signal": "+0.02% 1h | score=0.31 | RSI=42.4",
-      "price": 73783.7278058362,
+      "price": 73784.4945091528,
       "est_gain_pct": 12.0,
       "est_gain_usd": 0.4
     },
@@ -5387,8 +5387,8 @@
       "time": "2026-04-15 08:09 UTC",
       "asset": "ETH",
       "reason": "Below threshold (+0.01% < 0.6%)",
-      "signal": "+0.01% 1h | score=0.30 | RSI=51.4",
-      "price": 2317.55314808615,
+      "signal": "+0.01% 1h | score=0.30 | RSI=51.6",
+      "price": 2317.61591853502,
       "est_gain_pct": 12.0,
       "est_gain_usd": 0.4
     },
@@ -5397,7 +5397,7 @@
       "asset": "XRP",
       "reason": "Below threshold (+0.08% < 0.6%)",
       "signal": "+0.08% 1h | score=0.26 | RSI=47.3",
-      "price": 1.35351765012528,
+      "price": 1.35350618380724,
       "est_gain_pct": 12.0,
       "est_gain_usd": 0.4
     }
@@ -5410,13 +5410,6 @@
   "strategy_written_this_run": false,
   "strat_stab": {
     "keys": [
-      [
-        10.0,
-        5.0,
-        "ETH-USD",
-        0.3,
-        60.0
-      ],
       [
         12.0,
         3.5,
@@ -5479,10 +5472,17 @@
         "ETH-USD",
         0.3,
         60.0
+      ],
+      [
+        12.0,
+        3.5,
+        "ETH-USD",
+        0.3,
+        60.0
       ]
     ],
-    "flip_count": 2595,
-    "locked_until": 1776844082.7064924,
+    "flip_count": 2596,
+    "locked_until": 1776845360.2662325,
     "lock_tp": 12.0,
     "lock_sl": 3.5
   }
