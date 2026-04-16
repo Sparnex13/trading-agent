@@ -497,10 +497,6 @@
   ],
   "balance_history": [
     {
-      "time": "2026-04-16 05:21 UTC",
-      "value": 37.7085
-    },
-    {
       "time": "2026-04-16 05:22 UTC",
       "value": 37.7144
     },
@@ -3375,6 +3371,10 @@
     {
       "time": "2026-04-16 15:14 UTC",
       "value": 37.542
+    },
+    {
+      "time": "2026-04-16 15:14 UTC",
+      "value": 37.542
     }
   ],
   "start_balance": 40.0,
@@ -3389,19 +3389,6 @@
   },
   "last_day": 19,
   "activity_log": [
-    {
-      "time": "2026-04-16 13:28 UTC",
-      "cycle": 720,
-      "portfolio": 37.85,
-      "eth_price": 2347.12,
-      "eth_pnl_pct": 0,
-      "cash": 3.66,
-      "actions": [
-        "holding cash"
-      ],
-      "xrp": "Positions: none",
-      "regime": "fear"
-    },
     {
       "time": "2026-04-16 13:29 UTC",
       "cycle": 720,
@@ -4948,18 +4935,22 @@
       ],
       "xrp": "Positions: none",
       "regime": "fear"
+    },
+    {
+      "time": "2026-04-16 15:14 UTC",
+      "cycle": 720,
+      "portfolio": 37.54,
+      "eth_price": 2323.77,
+      "eth_pnl_pct": 0,
+      "cash": 3.66,
+      "actions": [
+        "holding cash"
+      ],
+      "xrp": "Positions: none",
+      "regime": "fear"
     }
   ],
   "missed_opportunities": [
-    {
-      "time": "2026-04-16 14:58 UTC",
-      "asset": "XRP",
-      "reason": "Below threshold (+0.01% < 0.6%)",
-      "signal": "+0.01% 1h | score=0.89 | RSI=58.7",
-      "price": 1.41,
-      "est_gain_pct": 12.0,
-      "est_gain_usd": 0.4
-    },
     {
       "time": "2026-04-16 14:58 UTC",
       "asset": "BTC",
@@ -5389,6 +5380,15 @@
       "reason": "Below threshold (+0.55% < 0.6%)",
       "signal": "+0.55% 1h | score=0.76 | RSI=42.6",
       "price": 74280,
+      "est_gain_pct": 12.0,
+      "est_gain_usd": 0.4
+    },
+    {
+      "time": "2026-04-16 15:14 UTC",
+      "asset": "BTC",
+      "reason": "Below threshold (+0.56% < 0.6%)",
+      "signal": "+0.56% 1h | score=0.76 | RSI=44.0",
+      "price": 74283,
       "est_gain_pct": 12.0,
       "est_gain_usd": 0.4
     },
