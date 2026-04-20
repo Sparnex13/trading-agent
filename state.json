@@ -497,10 +497,6 @@
   ],
   "balance_history": [
     {
-      "time": "2026-04-20 05:17 UTC",
-      "value": 36.8906
-    },
-    {
       "time": "2026-04-20 05:18 UTC",
       "value": 36.8878
     },
@@ -3375,6 +3371,10 @@
     {
       "time": "2026-04-20 15:57 UTC",
       "value": 37.5186
+    },
+    {
+      "time": "2026-04-20 15:58 UTC",
+      "value": 37.5199
     }
   ],
   "start_balance": 40.0,
@@ -3389,19 +3389,6 @@
   },
   "last_day": 23,
   "activity_log": [
-    {
-      "time": "2026-04-20 14:14 UTC",
-      "cycle": 720,
-      "portfolio": 37.35,
-      "eth_price": 2300.38,
-      "eth_pnl_pct": 0,
-      "cash": 3.66,
-      "actions": [
-        "holding cash"
-      ],
-      "xrp": "Positions: none",
-      "regime": "fear"
-    },
     {
       "time": "2026-04-20 14:16 UTC",
       "cycle": 720,
@@ -4940,7 +4927,20 @@
       "time": "2026-04-20 15:57 UTC",
       "cycle": 720,
       "portfolio": 37.52,
-      "eth_price": 2311.69,
+      "eth_price": 2311.34,
+      "eth_pnl_pct": 0,
+      "cash": 3.66,
+      "actions": [
+        "holding cash"
+      ],
+      "xrp": "Positions: none",
+      "regime": "fear"
+    },
+    {
+      "time": "2026-04-20 15:58 UTC",
+      "cycle": 720,
+      "portfolio": 37.52,
+      "eth_price": 2311.21,
       "eth_pnl_pct": 0,
       "cash": 3.66,
       "actions": [
@@ -4951,15 +4951,6 @@
     }
   ],
   "missed_opportunities": [
-    {
-      "time": "2026-04-20 15:42 UTC",
-      "asset": "BTC",
-      "reason": "Below threshold (+0.51% < 0.6%)",
-      "signal": "+0.51% 1h | score=0.41 | RSI=67.8",
-      "price": 75693,
-      "est_gain_pct": 12.0,
-      "est_gain_usd": 0.4
-    },
     {
       "time": "2026-04-20 15:44 UTC",
       "asset": "ETH",
@@ -5398,6 +5389,15 @@
       "reason": "Below threshold (+0.57% < 0.6%)",
       "signal": "+0.57% 1h | score=0.74 | RSI=58.3",
       "price": 2310.44,
+      "est_gain_pct": 12.0,
+      "est_gain_usd": 0.4
+    },
+    {
+      "time": "2026-04-20 15:58 UTC",
+      "asset": "ETH",
+      "reason": "Below threshold (+0.60% < 0.6%)",
+      "signal": "+0.60% 1h | score=0.76 | RSI=58.2",
+      "price": 2311.21,
       "est_gain_pct": 12.0,
       "est_gain_usd": 0.4
     }
