@@ -501,10 +501,6 @@
       "value": 37.1632
     },
     {
-      "time": "2026-04-20 01:38 UTC",
-      "value": 37.1632
-    },
-    {
       "time": "2026-04-20 01:40 UTC",
       "value": 37.1519
     },
@@ -3374,7 +3370,11 @@
     },
     {
       "time": "2026-04-20 12:11 UTC",
-      "value": 37.4411
+      "value": 37.44
+    },
+    {
+      "time": "2026-04-20 12:12 UTC",
+      "value": 37.4374
     }
   ],
   "start_balance": 40.0,
@@ -3389,19 +3389,6 @@
   },
   "last_day": 23,
   "activity_log": [
-    {
-      "time": "2026-04-20 10:35 UTC",
-      "cycle": 720,
-      "portfolio": 37.42,
-      "eth_price": 2310.37,
-      "eth_pnl_pct": 0,
-      "cash": 3.66,
-      "actions": [
-        "holding cash"
-      ],
-      "xrp": "Positions: none",
-      "regime": "fear"
-    },
     {
       "time": "2026-04-20 10:36 UTC",
       "cycle": 720,
@@ -4948,45 +4935,22 @@
       ],
       "xrp": "Positions: none",
       "regime": "fear"
+    },
+    {
+      "time": "2026-04-20 12:12 UTC",
+      "cycle": 720,
+      "portfolio": 37.44,
+      "eth_price": 2313.4,
+      "eth_pnl_pct": 0,
+      "cash": 3.66,
+      "actions": [
+        "holding cash"
+      ],
+      "xrp": "Positions: none",
+      "regime": "fear"
     }
   ],
   "missed_opportunities": [
-    {
-      "time": "2026-04-20 11:56 UTC",
-      "asset": "BTC",
-      "reason": "Below threshold (+0.22% < 0.6%)",
-      "signal": "+0.22% 1h | score=0.23 | RSI=61.3",
-      "price": 75213,
-      "est_gain_pct": 12.0,
-      "est_gain_usd": 0.4
-    },
-    {
-      "time": "2026-04-20 11:56 UTC",
-      "asset": "ETH",
-      "reason": "Below threshold (+0.21% < 0.6%)",
-      "signal": "+0.21% 1h | score=0.23 | RSI=62.9",
-      "price": 2309.55,
-      "est_gain_pct": 12.0,
-      "est_gain_usd": 0.4
-    },
-    {
-      "time": "2026-04-20 11:56 UTC",
-      "asset": "XRP",
-      "reason": "Below threshold (+0.02% < 0.6%)",
-      "signal": "+0.02% 1h | score=0.14 | RSI=54.0",
-      "price": 1.42,
-      "est_gain_pct": 12.0,
-      "est_gain_usd": 0.4
-    },
-    {
-      "time": "2026-04-20 11:57 UTC",
-      "asset": "SOL",
-      "reason": "Below threshold (+0.28% < 0.6%)",
-      "signal": "+0.28% 1h | score=0.31 | RSI=53.3",
-      "price": 85.11,
-      "est_gain_pct": 12.0,
-      "est_gain_usd": 0.4
-    },
     {
       "time": "2026-04-20 11:57 UTC",
       "asset": "ETH",
@@ -5400,6 +5364,42 @@
       "price": 75360,
       "est_gain_pct": 12.0,
       "est_gain_usd": 0.4
+    },
+    {
+      "time": "2026-04-20 12:12 UTC",
+      "asset": "ETH",
+      "reason": "Below threshold (+0.22% < 0.6%)",
+      "signal": "+0.22% 1h | score=0.38 | RSI=66.9",
+      "price": 2313.4,
+      "est_gain_pct": 12.0,
+      "est_gain_usd": 0.4
+    },
+    {
+      "time": "2026-04-20 12:12 UTC",
+      "asset": "SOL",
+      "reason": "Below threshold (+0.27% < 0.6%)",
+      "signal": "+0.27% 1h | score=0.35 | RSI=66.7",
+      "price": 85.24,
+      "est_gain_pct": 12.0,
+      "est_gain_usd": 0.4
+    },
+    {
+      "time": "2026-04-20 12:12 UTC",
+      "asset": "XRP",
+      "reason": "Below threshold (+0.19% < 0.6%)",
+      "signal": "+0.19% 1h | score=0.29 | RSI=63.4",
+      "price": 1.42,
+      "est_gain_pct": 12.0,
+      "est_gain_usd": 0.4
+    },
+    {
+      "time": "2026-04-20 12:12 UTC",
+      "asset": "BTC",
+      "reason": "Below threshold (+0.27% < 0.6%)",
+      "signal": "+0.27% 1h | score=0.11 | RSI=70.7",
+      "price": 75354,
+      "est_gain_pct": 12.0,
+      "est_gain_usd": 0.4
     }
   ],
   "last_sell_price": 2067.03,
@@ -5410,13 +5410,6 @@
   "strategy_written_this_run": false,
   "strat_stab": {
     "keys": [
-      [
-        12.0,
-        3.5,
-        "ETH-USD",
-        0.3,
-        60.0
-      ],
       [
         12.0,
         3.5,
@@ -5479,10 +5472,17 @@
         "ETH-USD",
         0.3,
         60.0
+      ],
+      [
+        12.0,
+        3.5,
+        "ETH-USD",
+        0.3,
+        60.0
       ]
     ],
-    "flip_count": 3701,
-    "locked_until": 1777291317.3569415,
+    "flip_count": 3702,
+    "locked_until": 1777291902.4538944,
     "lock_tp": 12.0,
     "lock_sl": 3.5
   }
