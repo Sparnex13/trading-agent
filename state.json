@@ -497,10 +497,6 @@
   ],
   "balance_history": [
     {
-      "time": "2026-04-20 05:26 UTC",
-      "value": 36.8412
-    },
-    {
       "time": "2026-04-20 05:27 UTC",
       "value": 36.8408
     },
@@ -3375,6 +3371,10 @@
     {
       "time": "2026-04-20 16:06 UTC",
       "value": 37.496
+    },
+    {
+      "time": "2026-04-20 16:07 UTC",
+      "value": 37.4764
     }
   ],
   "start_balance": 40.0,
@@ -3389,19 +3389,6 @@
   },
   "last_day": 23,
   "activity_log": [
-    {
-      "time": "2026-04-20 14:24 UTC",
-      "cycle": 720,
-      "portfolio": 37.56,
-      "eth_price": 2315.07,
-      "eth_pnl_pct": 0,
-      "cash": 3.66,
-      "actions": [
-        "holding cash"
-      ],
-      "xrp": "Positions: none",
-      "regime": "fear"
-    },
     {
       "time": "2026-04-20 14:25 UTC",
       "cycle": 720,
@@ -4948,18 +4935,22 @@
       ],
       "xrp": "Positions: none",
       "regime": "fear"
+    },
+    {
+      "time": "2026-04-20 16:07 UTC",
+      "cycle": 720,
+      "portfolio": 37.48,
+      "eth_price": 2309.57,
+      "eth_pnl_pct": 0,
+      "cash": 3.66,
+      "actions": [
+        "holding cash"
+      ],
+      "xrp": "Positions: none",
+      "regime": "fear"
     }
   ],
   "missed_opportunities": [
-    {
-      "time": "2026-04-20 15:45 UTC",
-      "asset": "XRP",
-      "reason": "Below threshold (+0.50% < 0.6%)",
-      "signal": "+0.50% 1h | score=0.47 | RSI=64.0",
-      "price": 1.43,
-      "est_gain_pct": 12.0,
-      "est_gain_usd": 0.4
-    },
     {
       "time": "2026-04-20 15:45 UTC",
       "asset": "BTC",
@@ -5398,6 +5389,15 @@
       "reason": "Score too low (0.49 < 0.5)",
       "signal": "+0.99% 1h | score=0.49 | RSI=69.1",
       "price": 75567,
+      "est_gain_pct": 12.0,
+      "est_gain_usd": 0.4
+    },
+    {
+      "time": "2026-04-20 16:07 UTC",
+      "asset": "BTC",
+      "reason": "Score too low (0.49 < 0.5)",
+      "signal": "+0.99% 1h | score=0.49 | RSI=68.7",
+      "price": 75565,
       "est_gain_pct": 12.0,
       "est_gain_usd": 0.4
     }
