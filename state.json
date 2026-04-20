@@ -497,10 +497,6 @@
   ],
   "balance_history": [
     {
-      "time": "2026-04-20 06:08 UTC",
-      "value": 36.947
-    },
-    {
       "time": "2026-04-20 06:09 UTC",
       "value": 36.9413
     },
@@ -3375,6 +3371,10 @@
     {
       "time": "2026-04-20 16:48 UTC",
       "value": 37.4365
+    },
+    {
+      "time": "2026-04-20 16:49 UTC",
+      "value": 37.42
     }
   ],
   "start_balance": 40.0,
@@ -3389,19 +3389,6 @@
   },
   "last_day": 23,
   "activity_log": [
-    {
-      "time": "2026-04-20 14:58 UTC",
-      "cycle": 720,
-      "portfolio": 37.18,
-      "eth_price": 2289.95,
-      "eth_pnl_pct": 0,
-      "cash": 3.66,
-      "actions": [
-        "holding cash"
-      ],
-      "xrp": "Positions: none",
-      "regime": "fear"
-    },
     {
       "time": "2026-04-20 14:58 UTC",
       "cycle": 720,
@@ -4948,18 +4935,22 @@
       ],
       "xrp": "Positions: none",
       "regime": "fear"
+    },
+    {
+      "time": "2026-04-20 16:49 UTC",
+      "cycle": 720,
+      "portfolio": 37.42,
+      "eth_price": 2307.01,
+      "eth_pnl_pct": 0,
+      "cash": 3.66,
+      "actions": [
+        "holding cash"
+      ],
+      "xrp": "Positions: none",
+      "regime": "fear"
     }
   ],
   "missed_opportunities": [
-    {
-      "time": "2026-04-20 16:15 UTC",
-      "asset": "XRP",
-      "reason": "Score too low (0.26 < 0.5)",
-      "signal": "+0.66% 1h | score=0.26 | RSI=61.4",
-      "price": 1.43,
-      "est_gain_pct": 12.0,
-      "est_gain_usd": 0.4
-    },
     {
       "time": "2026-04-20 16:15 UTC",
       "asset": "BTC",
@@ -5398,6 +5389,15 @@
       "reason": "Below threshold (+0.08% < 0.6%)",
       "signal": "+0.08% 1h | score=-0.11 | RSI=63.8",
       "price": 85.63,
+      "est_gain_pct": 12.0,
+      "est_gain_usd": 0.4
+    },
+    {
+      "time": "2026-04-20 16:49 UTC",
+      "asset": "SOL",
+      "reason": "Below threshold (+0.07% < 0.6%)",
+      "signal": "+0.07% 1h | score=0.08 | RSI=62.6",
+      "price": 85.62,
       "est_gain_pct": 12.0,
       "est_gain_usd": 0.4
     }
