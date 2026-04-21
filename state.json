@@ -497,10 +497,6 @@
   ],
   "balance_history": [
     {
-      "time": "2026-04-20 23:56 UTC",
-      "value": 37.522
-    },
-    {
       "time": "2026-04-20 23:57 UTC",
       "value": 37.5358
     },
@@ -3375,6 +3371,10 @@
     {
       "time": "2026-04-21 09:58 UTC",
       "value": 37.7823
+    },
+    {
+      "time": "2026-04-21 09:59 UTC",
+      "value": 37.7823
     }
   ],
   "start_balance": 40.0,
@@ -3389,19 +3389,6 @@
   },
   "last_day": 24,
   "activity_log": [
-    {
-      "time": "2026-04-21 08:01 UTC",
-      "cycle": 720,
-      "portfolio": 37.7,
-      "eth_price": 2319.49,
-      "eth_pnl_pct": 0,
-      "cash": 3.66,
-      "actions": [
-        "holding cash"
-      ],
-      "xrp": "Positions: none",
-      "regime": "neutral"
-    },
     {
       "time": "2026-04-21 08:02 UTC",
       "cycle": 720,
@@ -4948,18 +4935,22 @@
       ],
       "xrp": "Positions: none",
       "regime": "neutral"
+    },
+    {
+      "time": "2026-04-21 09:59 UTC",
+      "cycle": 720,
+      "portfolio": 37.78,
+      "eth_price": 2325.12,
+      "eth_pnl_pct": 0,
+      "cash": 3.66,
+      "actions": [
+        "holding cash"
+      ],
+      "xrp": "Positions: none",
+      "regime": "neutral"
     }
   ],
   "missed_opportunities": [
-    {
-      "time": "2026-04-21 09:17 UTC",
-      "asset": "BTC",
-      "reason": "Below threshold (+0.42% < 0.6%)",
-      "signal": "+0.42% 1h | score=1.01 | RSI=54.2",
-      "price": 76519,
-      "est_gain_pct": 12.0,
-      "est_gain_usd": 0.4
-    },
     {
       "time": "2026-04-21 09:17 UTC",
       "asset": "ETH",
@@ -5394,6 +5385,15 @@
     },
     {
       "time": "2026-04-21 09:58 UTC",
+      "asset": "ETH",
+      "reason": "Below threshold (+0.03% < 0.6%)",
+      "signal": "+0.03% 1h | score=0.57 | RSI=45.4",
+      "price": 2325.12,
+      "est_gain_pct": 12.0,
+      "est_gain_usd": 0.4
+    },
+    {
+      "time": "2026-04-21 09:59 UTC",
       "asset": "ETH",
       "reason": "Below threshold (+0.03% < 0.6%)",
       "signal": "+0.03% 1h | score=0.57 | RSI=45.4",
