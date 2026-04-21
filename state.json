@@ -497,10 +497,6 @@
   ],
   "balance_history": [
     {
-      "time": "2026-04-21 07:00 UTC",
-      "value": 37.6473
-    },
-    {
       "time": "2026-04-21 07:01 UTC",
       "value": 37.6312
     },
@@ -3375,6 +3371,10 @@
     {
       "time": "2026-04-21 17:11 UTC",
       "value": 37.4221
+    },
+    {
+      "time": "2026-04-21 17:12 UTC",
+      "value": 37.4184
     }
   ],
   "start_balance": 40.0,
@@ -3389,19 +3389,6 @@
   },
   "last_day": 24,
   "activity_log": [
-    {
-      "time": "2026-04-21 15:39 UTC",
-      "cycle": 720,
-      "portfolio": 37.44,
-      "eth_price": 2300.72,
-      "eth_pnl_pct": 0,
-      "cash": 3.66,
-      "actions": [
-        "holding cash"
-      ],
-      "xrp": "Positions: none",
-      "regime": "neutral"
-    },
     {
       "time": "2026-04-21 15:40 UTC",
       "cycle": 720,
@@ -4948,6 +4935,19 @@
       ],
       "xrp": "Positions: none",
       "regime": "neutral"
+    },
+    {
+      "time": "2026-04-21 17:12 UTC",
+      "cycle": 720,
+      "portfolio": 37.42,
+      "eth_price": 2303.15,
+      "eth_pnl_pct": 0,
+      "cash": 3.66,
+      "actions": [
+        "holding cash"
+      ],
+      "xrp": "Positions: none",
+      "regime": "neutral"
     }
   ],
   "missed_opportunities": [
@@ -5411,6 +5411,20 @@
   "strat_stab": {
     "keys": [
       [
+        7.0,
+        3.5,
+        "ETH-USD",
+        0.3,
+        60.0
+      ],
+      [
+        12.0,
+        3.5,
+        "ETH-USD",
+        0.3,
+        60.0
+      ],
+      [
         12.0,
         3.5,
         "ETH-USD",
@@ -5454,20 +5468,6 @@
       ],
       [
         7.0,
-        3.5,
-        "ETH-USD",
-        0.3,
-        60.0
-      ],
-      [
-        12.0,
-        3.5,
-        "ETH-USD",
-        0.3,
-        60.0
-      ],
-      [
-        12.0,
         3.5,
         "ETH-USD",
         0.3,
@@ -5481,8 +5481,8 @@
         60.0
       ]
     ],
-    "flip_count": 3913,
-    "locked_until": 1777396353.1390376,
+    "flip_count": 3911,
+    "locked_until": 1777396225.646694,
     "lock_tp": 12.0,
     "lock_sl": 3.5
   }
