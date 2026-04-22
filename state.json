@@ -497,10 +497,6 @@
   ],
   "balance_history": [
     {
-      "time": "2026-04-22 05:29 UTC",
-      "value": 38.513
-    },
-    {
       "time": "2026-04-22 05:30 UTC",
       "value": 38.6193
     },
@@ -3374,7 +3370,11 @@
     },
     {
       "time": "2026-04-22 15:02 UTC",
-      "value": 38.6512
+      "value": 38.6488
+    },
+    {
+      "time": "2026-04-22 15:03 UTC",
+      "value": 38.6298
     }
   ],
   "start_balance": 40.0,
@@ -3389,19 +3389,6 @@
   },
   "last_day": 25,
   "activity_log": [
-    {
-      "time": "2026-04-22 13:34 UTC",
-      "cycle": 720,
-      "portfolio": 38.7,
-      "eth_price": 2409.22,
-      "eth_pnl_pct": 0,
-      "cash": 3.66,
-      "actions": [
-        "holding cash"
-      ],
-      "xrp": "Positions: none",
-      "regime": "neutral"
-    },
     {
       "time": "2026-04-22 13:35 UTC",
       "cycle": 720,
@@ -4948,18 +4935,22 @@
       ],
       "xrp": "Positions: none",
       "regime": "neutral"
+    },
+    {
+      "time": "2026-04-22 15:03 UTC",
+      "cycle": 720,
+      "portfolio": 38.63,
+      "eth_price": 2397.4,
+      "eth_pnl_pct": 0,
+      "cash": 3.66,
+      "actions": [
+        "holding cash"
+      ],
+      "xrp": "Positions: none",
+      "regime": "neutral"
     }
   ],
   "missed_opportunities": [
-    {
-      "time": "2026-04-22 14:26 UTC",
-      "asset": "XRP",
-      "reason": "Score too low (0.34 < 0.5)",
-      "signal": "+0.34% 1h | score=0.34 | RSI=71.4",
-      "price": 1.46,
-      "est_gain_pct": 12.0,
-      "est_gain_usd": 0.4
-    },
     {
       "time": "2026-04-22 14:27 UTC",
       "asset": "ETH",
@@ -5400,6 +5391,15 @@
       "price": 78978,
       "est_gain_pct": 12.0,
       "est_gain_usd": 0.4
+    },
+    {
+      "time": "2026-04-22 15:03 UTC",
+      "asset": "BTC",
+      "reason": "Below threshold (+0.11% < 0.3%)",
+      "signal": "+0.11% 1h | score=0.98 | RSI=93.3",
+      "price": 78963,
+      "est_gain_pct": 12.0,
+      "est_gain_usd": 0.4
     }
   ],
   "last_sell_price": 2067.03,
@@ -5481,8 +5481,8 @@
         60.0
       ]
     ],
-    "flip_count": 4154,
-    "locked_until": 1777474911.037177,
+    "flip_count": 4155,
+    "locked_until": 1777474975.0990918,
     "lock_tp": 12.0,
     "lock_sl": 3.5
   }
