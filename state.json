@@ -497,10 +497,6 @@
   ],
   "balance_history": [
     {
-      "time": "2026-04-25 03:08 UTC",
-      "value": 37.6859
-    },
-    {
       "time": "2026-04-25 03:09 UTC",
       "value": 37.6815
     },
@@ -3375,6 +3371,10 @@
     {
       "time": "2026-04-25 11:04 UTC",
       "value": 37.6854
+    },
+    {
+      "time": "2026-04-25 11:05 UTC",
+      "value": 37.6806
     }
   ],
   "start_balance": 40.0,
@@ -3389,19 +3389,6 @@
   },
   "last_day": 28,
   "activity_log": [
-    {
-      "time": "2026-04-25 10:00 UTC",
-      "cycle": 720,
-      "portfolio": 37.7,
-      "eth_price": 2321.26,
-      "eth_pnl_pct": 0,
-      "cash": 3.66,
-      "actions": [
-        "holding cash"
-      ],
-      "xrp": "Positions: none",
-      "regime": "neutral"
-    },
     {
       "time": "2026-04-25 10:01 UTC",
       "cycle": 720,
@@ -4948,18 +4935,22 @@
       ],
       "xrp": "Positions: none",
       "regime": "neutral"
+    },
+    {
+      "time": "2026-04-25 11:05 UTC",
+      "cycle": 720,
+      "portfolio": 37.68,
+      "eth_price": 2319.55,
+      "eth_pnl_pct": 0,
+      "cash": 3.66,
+      "actions": [
+        "holding cash"
+      ],
+      "xrp": "Positions: none",
+      "regime": "neutral"
     }
   ],
   "missed_opportunities": [
-    {
-      "time": "2026-04-25 10:42 UTC",
-      "asset": "BTC",
-      "reason": "Below threshold (+0.15% < 0.6%)",
-      "signal": "+0.15% 1h | score=0.51 | RSI=54.0",
-      "price": 77850,
-      "est_gain_pct": 12.0,
-      "est_gain_usd": 0.4
-    },
     {
       "time": "2026-04-25 10:42 UTC",
       "asset": "ETH",
@@ -5394,6 +5385,15 @@
     },
     {
       "time": "2026-04-25 11:04 UTC",
+      "asset": "BTC",
+      "reason": "Below threshold (+0.01% < 0.6%)",
+      "signal": "+0.01% 1h | score=0.11 | RSI=61.6",
+      "price": 77782,
+      "est_gain_pct": 12.0,
+      "est_gain_usd": 0.4
+    },
+    {
+      "time": "2026-04-25 11:05 UTC",
       "asset": "BTC",
       "reason": "Below threshold (+0.01% < 0.6%)",
       "signal": "+0.01% 1h | score=0.11 | RSI=61.6",
