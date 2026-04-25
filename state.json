@@ -497,10 +497,6 @@
   ],
   "balance_history": [
     {
-      "time": "2026-04-25 10:55 UTC",
-      "value": 37.707
-    },
-    {
       "time": "2026-04-25 10:56 UTC",
       "value": 37.7054
     },
@@ -3374,7 +3370,11 @@
     },
     {
       "time": "2026-04-25 18:06 UTC",
-      "value": 37.4598
+      "value": 37.4614
+    },
+    {
+      "time": "2026-04-25 18:07 UTC",
+      "value": 37.4676
     }
   ],
   "start_balance": 40.0,
@@ -3389,19 +3389,6 @@
   },
   "last_day": 28,
   "activity_log": [
-    {
-      "time": "2026-04-25 16:38 UTC",
-      "cycle": 720,
-      "portfolio": 37.43,
-      "eth_price": 2308.01,
-      "eth_pnl_pct": 0,
-      "cash": 3.66,
-      "actions": [
-        "holding cash"
-      ],
-      "xrp": "Positions: none",
-      "regime": "neutral"
-    },
     {
       "time": "2026-04-25 16:38 UTC",
       "cycle": 720,
@@ -4948,18 +4935,22 @@
       ],
       "xrp": "Positions: none",
       "regime": "neutral"
+    },
+    {
+      "time": "2026-04-25 18:07 UTC",
+      "cycle": 720,
+      "portfolio": 37.47,
+      "eth_price": 2310.95,
+      "eth_pnl_pct": 0,
+      "cash": 3.66,
+      "actions": [
+        "holding cash"
+      ],
+      "xrp": "Positions: none",
+      "regime": "neutral"
     }
   ],
   "missed_opportunities": [
-    {
-      "time": "2026-04-25 17:30 UTC",
-      "asset": "ETH",
-      "reason": "Below threshold (+0.12% < 0.6%)",
-      "signal": "+0.12% 1h | score=0.59 | RSI=33.7",
-      "price": 2310.79,
-      "est_gain_pct": 12.0,
-      "est_gain_usd": 0.4
-    },
     {
       "time": "2026-04-25 17:31 UTC",
       "asset": "ETH",
@@ -5400,6 +5391,15 @@
       "price": 2311.83,
       "est_gain_pct": 12.0,
       "est_gain_usd": 0.4
+    },
+    {
+      "time": "2026-04-25 18:07 UTC",
+      "asset": "ETH",
+      "reason": "Below threshold (+0.08% < 0.6%)",
+      "signal": "+0.08% 1h | score=0.12 | RSI=38.3",
+      "price": 2310.95,
+      "est_gain_pct": 12.0,
+      "est_gain_usd": 0.4
     }
   ],
   "last_sell_price": 2067.03,
@@ -5439,21 +5439,21 @@
         60.0
       ],
       [
+        7.0,
+        3.5,
+        "ETH-USD",
+        0.3,
+        60.0
+      ],
+      [
+        7.0,
+        3.5,
+        "ETH-USD",
+        0.3,
+        60.0
+      ],
+      [
         12.0,
-        3.5,
-        "ETH-USD",
-        0.3,
-        60.0
-      ],
-      [
-        7.0,
-        3.5,
-        "ETH-USD",
-        0.3,
-        60.0
-      ],
-      [
-        7.0,
         3.5,
         "ETH-USD",
         0.3,
@@ -5481,8 +5481,8 @@
         60.0
       ]
     ],
-    "flip_count": 4793,
-    "locked_until": 1777745111.2068367,
+    "flip_count": 4794,
+    "locked_until": 1777745174.7918851,
     "lock_tp": 12.0,
     "lock_sl": 3.5
   }
