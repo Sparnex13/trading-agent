@@ -3374,7 +3374,7 @@
     },
     {
       "time": "2026-04-26 15:10 UTC",
-      "value": 37.8596
+      "value": 37.8592
     }
   ],
   "start_balance": 40.0,
@@ -3382,7 +3382,7 @@
   "cash": 3.66,
   "scalp": {
     "trades_today": 0,
-    "last_price": 1.42692320698506,
+    "last_price": 1.42691241837731,
     "position": null,
     "last_entry_time": 1775219437.2553296,
     "disabled_until_recovery": true
@@ -4940,7 +4940,7 @@
       "time": "2026-04-26 15:10 UTC",
       "cycle": 720,
       "portfolio": 37.86,
-      "eth_price": 2347.01,
+      "eth_price": 2347.04,
       "eth_pnl_pct": 0,
       "cash": 3.66,
       "actions": [
@@ -4951,24 +4951,6 @@
     }
   ],
   "missed_opportunities": [
-    {
-      "time": "2026-04-26 15:01 UTC",
-      "asset": "SOL",
-      "reason": "Below threshold (+0.42% < 0.6%)",
-      "signal": "+0.42% 1h | score=0.32 | RSI=59.9",
-      "price": 86.45,
-      "est_gain_pct": 12.0,
-      "est_gain_usd": 0.4
-    },
-    {
-      "time": "2026-04-26 15:01 UTC",
-      "asset": "XRP",
-      "reason": "Below threshold (+0.24% < 0.6%)",
-      "signal": "+0.24% 1h | score=0.11 | RSI=62.0",
-      "price": 1.43,
-      "est_gain_pct": 12.0,
-      "est_gain_usd": 0.4
-    },
     {
       "time": "2026-04-26 15:02 UTC",
       "asset": "ETH",
@@ -5396,8 +5378,26 @@
       "time": "2026-04-26 15:10 UTC",
       "asset": "SOL",
       "reason": "Below threshold (+0.01% < 0.6%)",
-      "signal": "+0.01% 1h | score=0.14 | RSI=59.4",
-      "price": 86.4332860593417,
+      "signal": "+0.01% 1h | score=0.15 | RSI=59.4",
+      "price": 86.4385301096749,
+      "est_gain_pct": 12.0,
+      "est_gain_usd": 0.4
+    },
+    {
+      "time": "2026-04-26 15:10 UTC",
+      "asset": "BTC",
+      "reason": "Below threshold (+0.00% < 0.6%)",
+      "signal": "+0.00% 1h | score=0.05 | RSI=69.1",
+      "price": 78109.0937469592,
+      "est_gain_pct": 12.0,
+      "est_gain_usd": 0.4
+    },
+    {
+      "time": "2026-04-26 15:10 UTC",
+      "asset": "ETH",
+      "reason": "Below threshold (+0.00% < 0.6%)",
+      "signal": "+0.00% 1h | score=0.03 | RSI=76.4",
+      "price": 2347.04315572666,
       "est_gain_pct": 12.0,
       "est_gain_usd": 0.4
     }
@@ -5460,29 +5460,29 @@
         60.0
       ],
       [
+        10.0,
+        5.0,
+        "ETH-USD",
+        0.3,
+        60.0
+      ],
+      [
+        10.0,
+        5.0,
+        "ETH-USD",
+        0.3,
+        60.0
+      ],
+      [
         12.0,
         3.5,
         "ETH-USD",
         0.3,
         60.0
-      ],
-      [
-        10.0,
-        5.0,
-        "ETH-USD",
-        0.3,
-        60.0
-      ],
-      [
-        10.0,
-        5.0,
-        "ETH-USD",
-        0.3,
-        60.0
       ]
     ],
-    "flip_count": 4979,
-    "locked_until": 1777820704.529263,
+    "flip_count": 4980,
+    "locked_until": 1777821021.6925104,
     "lock_tp": 12.0,
     "lock_sl": 3.5
   }
