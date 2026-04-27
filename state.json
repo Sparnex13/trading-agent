@@ -497,10 +497,6 @@
   ],
   "balance_history": [
     {
-      "time": "2026-04-27 05:11 UTC",
-      "value": 38.1065
-    },
-    {
       "time": "2026-04-27 05:12 UTC",
       "value": 38.0465
     },
@@ -3375,6 +3371,10 @@
     {
       "time": "2026-04-27 14:22 UTC",
       "value": 37.3345
+    },
+    {
+      "time": "2026-04-27 14:23 UTC",
+      "value": 37.3481
     }
   ],
   "start_balance": 40.0,
@@ -3389,19 +3389,6 @@
   },
   "last_day": 30,
   "activity_log": [
-    {
-      "time": "2026-04-27 12:36 UTC",
-      "cycle": 720,
-      "portfolio": 37.44,
-      "eth_price": 2316.05,
-      "eth_pnl_pct": 0,
-      "cash": 3.66,
-      "actions": [
-        "holding cash"
-      ],
-      "xrp": "Positions: none",
-      "regime": "neutral"
-    },
     {
       "time": "2026-04-27 12:37 UTC",
       "cycle": 720,
@@ -4948,27 +4935,22 @@
       ],
       "xrp": "Positions: none",
       "regime": "neutral"
+    },
+    {
+      "time": "2026-04-27 14:23 UTC",
+      "cycle": 720,
+      "portfolio": 37.35,
+      "eth_price": 2312.73,
+      "eth_pnl_pct": 0,
+      "cash": 3.66,
+      "actions": [
+        "holding cash"
+      ],
+      "xrp": "Positions: none",
+      "regime": "neutral"
     }
   ],
   "missed_opportunities": [
-    {
-      "time": "2026-04-27 14:03 UTC",
-      "asset": "SOL",
-      "reason": "Below threshold (+0.08% < 0.6%)",
-      "signal": "+0.08% 1h | score=0.63 | RSI=20.7",
-      "price": 85.14,
-      "est_gain_pct": 12.0,
-      "est_gain_usd": 0.4
-    },
-    {
-      "time": "2026-04-27 14:03 UTC",
-      "asset": "BTC",
-      "reason": "Below threshold (+0.15% < 0.6%)",
-      "signal": "+0.15% 1h | score=0.49 | RSI=15.8",
-      "price": 77772,
-      "est_gain_pct": 12.0,
-      "est_gain_usd": 0.4
-    },
     {
       "time": "2026-04-27 14:04 UTC",
       "asset": "SOL",
@@ -5398,6 +5380,24 @@
       "reason": "Below threshold (+0.08% < 0.6%)",
       "signal": "+0.08% 1h | score=0.63 | RSI=22.5",
       "price": 85.24,
+      "est_gain_pct": 12.0,
+      "est_gain_usd": 0.4
+    },
+    {
+      "time": "2026-04-27 14:23 UTC",
+      "asset": "SOL",
+      "reason": "Below threshold (+0.11% < 0.6%)",
+      "signal": "+0.11% 1h | score=0.65 | RSI=23.5",
+      "price": 85.26,
+      "est_gain_pct": 12.0,
+      "est_gain_usd": 0.4
+    },
+    {
+      "time": "2026-04-27 14:23 UTC",
+      "asset": "BTC",
+      "reason": "Below threshold (+0.15% < 0.6%)",
+      "signal": "+0.15% 1h | score=0.64 | RSI=20.7",
+      "price": 77871,
       "est_gain_pct": 12.0,
       "est_gain_usd": 0.4
     }
