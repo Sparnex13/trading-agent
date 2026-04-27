@@ -497,10 +497,6 @@
   ],
   "balance_history": [
     {
-      "time": "2026-04-26 21:34 UTC",
-      "value": 37.9364
-    },
-    {
       "time": "2026-04-26 21:35 UTC",
       "value": 37.961
     },
@@ -3375,6 +3371,10 @@
     {
       "time": "2026-04-27 07:03 UTC",
       "value": 37.5587
+    },
+    {
+      "time": "2026-04-27 07:04 UTC",
+      "value": 37.5606
     }
   ],
   "start_balance": 40.0,
@@ -3389,19 +3389,6 @@
   },
   "last_day": 30,
   "activity_log": [
-    {
-      "time": "2026-04-27 05:54 UTC",
-      "cycle": 720,
-      "portfolio": 37.58,
-      "eth_price": 2323.66,
-      "eth_pnl_pct": 0,
-      "cash": 3.66,
-      "actions": [
-        "holding cash"
-      ],
-      "xrp": "Positions: none",
-      "regime": "neutral"
-    },
     {
       "time": "2026-04-27 05:56 UTC",
       "cycle": 720,
@@ -4948,18 +4935,22 @@
       ],
       "xrp": "Positions: none",
       "regime": "neutral"
+    },
+    {
+      "time": "2026-04-27 07:04 UTC",
+      "cycle": 720,
+      "portfolio": 37.56,
+      "eth_price": 2321.43,
+      "eth_pnl_pct": 0,
+      "cash": 3.66,
+      "actions": [
+        "holding cash"
+      ],
+      "xrp": "Positions: none",
+      "regime": "neutral"
     }
   ],
   "missed_opportunities": [
-    {
-      "time": "2026-04-27 03:46 UTC",
-      "asset": "XRP",
-      "reason": "Score too low (0.27 < 0.5)",
-      "signal": "+0.30% 1h | score=0.27 | RSI=76.8",
-      "price": 1.45,
-      "est_gain_pct": 12.0,
-      "est_gain_usd": 0.4
-    },
     {
       "time": "2026-04-27 03:48 UTC",
       "asset": "ETH",
@@ -5394,6 +5385,15 @@
     },
     {
       "time": "2026-04-27 07:03 UTC",
+      "asset": "XRP",
+      "reason": "Below threshold (+0.06% < 0.6%)",
+      "signal": "+0.06% 1h | score=0.15 | RSI=44.5",
+      "price": 1.42,
+      "est_gain_pct": 12.0,
+      "est_gain_usd": 0.4
+    },
+    {
+      "time": "2026-04-27 07:04 UTC",
       "asset": "XRP",
       "reason": "Below threshold (+0.06% < 0.6%)",
       "signal": "+0.06% 1h | score=0.15 | RSI=44.5",
